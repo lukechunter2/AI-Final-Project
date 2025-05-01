@@ -17,34 +17,30 @@ except Exception as e:
     print(f"[ERROR] Failed to load Excel file: {e}")
     df = pd.DataFrame()
 
-# Load workout rules from Sheet2 + Sheet3
+# Load rules from Sheet2 + Sheet3 (transposed)
 try:
-    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=2)
-    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", skiprows=3)
+    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", header=2)
+    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=2)
     df_rules = pd.concat([df_rules2, df_rules3], axis=1)
 
+    df_rules = df_rules.set_index("Rules").T
+    df_rules.index = df_rules.index.str.strip().str.lower()
+
     rules_by_focus = {}
-    labels = df_rules.iloc[:, 0].astype(str).str.lower().str.strip()
+    for focus in df_rules.index:
+        row = df_rules.loc[focus]
+        rules_by_focus[focus] = {
+            "reps": row.get("Number of Reps", "N/A"),
+            "rest": row.get("Rest Times", "N/A"),
+            "sets": row.get("Number of sets", "N/A"),
+        }
 
-    for col in df_rules.columns[1:]:
-        if col and isinstance(col, str):
-            key = col.strip().lower()
-            rule_map = {}
-            for i, label in enumerate(labels):
-                if "rep" in label:
-                    rule_map["reps"] = df_rules.iloc[i][col]
-                elif "rest" in label:
-                    rule_map["rest"] = df_rules.iloc[i][col]
-                elif "set" in label:
-                    rule_map["sets"] = df_rules.iloc[i][col]
-            rules_by_focus[key] = rule_map
-
-    print("[INFO] Workout rules loaded.")
+    print("[INFO] Workout rules loaded from transposed data.")
 except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
 
-# Dropdown option extraction
+# Provide dropdown options
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
@@ -69,7 +65,7 @@ def get_dropdown_options():
             "access": []
         }
 
-# Main route to generate plan
+# Main plan route
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
