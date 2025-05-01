@@ -11,7 +11,9 @@ try:
     df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
     first_col_name = df.columns[0]
     df = df.rename(columns={first_col_name: "Exercise"})
+    df = df[df["Exercise"].str.lower() != "exercises"]  # ✅ Remove header row if present
     print(f"[INFO] Loaded {len(df)} rows of exercise data.")
+
 except Exception as e:
     print(f"[ERROR] Failed to load Excel file: {e}")
     df = pd.DataFrame()  # fallback to empty DataFrame
@@ -24,7 +26,7 @@ def get_dropdown_options():
         focus_options = sorted(set([
             val.split('-')[0] if '-' in val else val
             for val in values
-            if isinstance(val, str)
+            if isinstance(val, str) and val not in ['None', 'Low', 'Full']
         ]))
         subcat_options = sorted(set([val for val in values if '-' in val]))
         access_options = sorted(set([val for val in values if val in ['None', 'Low', 'Full']]))
@@ -40,6 +42,7 @@ def get_dropdown_options():
             "subcategory": [],
             "access": []
         }
+
 
 
 @app.route('/get_workouts', methods=['GET'])
