@@ -53,10 +53,14 @@ def get_workouts():
     days = int(request.args.get('days', 3))
 
     try:
-        matching = df[df.apply(lambda row: all(
-            tag in row.values for tag in [focus, subcategory, access]
-        ), axis=1)]
+        def row_matches(row):
+            values = [str(v) for v in row.values if pd.notna(v)]
+            has_focus = any(v.startswith(focus) for v in values)
+            has_subcategory = subcategory in values
+            has_access = access in values
+            return has_focus and has_subcategory and has_access
 
+        matching = df[df.apply(row_matches, axis=1)]
         exercises = matching["Exercise"].dropna().tolist()
         plan = {f"Day {i+1}": [] for i in range(days)}
         for i, exercise in enumerate(exercises):
@@ -66,6 +70,7 @@ def get_workouts():
     except Exception as e:
         print(f"[ERROR] Failed to generate plan: {e}")
         return jsonify({f"Day {i+1}": [] for i in range(days)})
+
 
 @app.route('/get_options', methods=['GET'])
 def get_options():
