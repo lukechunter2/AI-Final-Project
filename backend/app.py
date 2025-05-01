@@ -4,6 +4,7 @@ import os
 
 app = Flask(__name__)
 
+# Load exercise data from Sheet1
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
@@ -16,36 +17,34 @@ except Exception as e:
     print(f"[ERROR] Failed to load Excel file: {e}")
     df = pd.DataFrame()
 
-# Load workout rules
+# Load workout rules from Sheet2 + Sheet3
 try:
-    df_rules1 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", header=0)
-    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=0)
-    df_rules = pd.concat([df_rules1, df_rules2], axis=1)
+    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=2)
+    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", skiprows=3)
+    df_rules = pd.concat([df_rules2, df_rules3], axis=1)
 
     rules_by_focus = {}
-    col0 = df_rules.iloc[:, 0].astype(str).str.lower().str.strip()
-
-    print("[DEBUG] Rule category rows found:")
-    print(col0.tolist())
+    labels = df_rules.iloc[:, 0].astype(str).str.lower().str.strip()
 
     for col in df_rules.columns[1:]:
         if col and isinstance(col, str):
             key = col.strip().lower()
-            rule_row_map = {
-                "reps": col0.str.contains("rep", na=False),
-                "rest": col0.str.contains("rest", na=False),
-                "sets": col0.str.contains("set", na=False)
-            }
+            rule_map = {}
+            for i, label in enumerate(labels):
+                if "rep" in label:
+                    rule_map["reps"] = df_rules.iloc[i][col]
+                elif "rest" in label:
+                    rule_map["rest"] = df_rules.iloc[i][col]
+                elif "set" in label:
+                    rule_map["sets"] = df_rules.iloc[i][col]
+            rules_by_focus[key] = rule_map
 
-            rules_by_focus[key] = {}
-            for k, row_filter in rule_row_map.items():
-                matches = df_rules.loc[row_filter, col]
-                rules_by_focus[key][k] = matches.values[0] if not matches.empty else "N/A"
     print("[INFO] Workout rules loaded.")
 except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
 
+# Dropdown option extraction
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
@@ -70,6 +69,7 @@ def get_dropdown_options():
             "access": []
         }
 
+# Main route to generate plan
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -95,9 +95,9 @@ def get_workouts():
         for i, exercise in enumerate(exercises):
             plan[f"Day {(i % days) + 1}"].append({
                 "exercise": exercise,
-                "sets": rule.get("sets", ""),
-                "reps": rule.get("reps", ""),
-                "rest": rule.get("rest", "")
+                "sets": rule.get("sets", "N/A"),
+                "reps": rule.get("reps", "N/A"),
+                "rest": rule.get("rest", "N/A")
             })
 
         return jsonify(plan)
@@ -109,6 +109,7 @@ def get_workouts():
 def get_options():
     return jsonify(get_dropdown_options())
 
+# Serve frontend
 @app.route('/')
 def serve_index():
     return send_from_directory('../frontend', 'index.html')
@@ -119,6 +120,7 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
