@@ -1,11 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import pandas as pd
-import json
+import os
 
 app = Flask(__name__)
 
-# Load the exercise database (adjust path as needed)
-df = pd.read_excel("data/exercises.xlsx", sheet_name="Sheet1", header=2)
+# Safely load the Excel file relative to this script
+EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
+df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1", header=2)
 
 # Extract unique options for frontend dropdowns
 def get_dropdown_options():
@@ -42,12 +43,7 @@ def get_workouts():
 def get_options():
     return jsonify(get_dropdown_options())
 
-if __name__ == '__main__':
-    app.run(debug=True)
-
-from flask import send_from_directory
-import os
-
+# Serve frontend files
 @app.route('/')
 def serve_index():
     return send_from_directory('../frontend', 'index.html')
@@ -55,4 +51,8 @@ def serve_index():
 @app.route('/<path:path>')
 def serve_static(path):
     return send_from_directory('../frontend', path)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
 
