@@ -25,6 +25,8 @@ try:
 
     rules_by_focus = {}
     col0 = df_rules.iloc[:, 0].astype(str).str.lower().str.strip()
+    print("[DEBUG] Rule category rows found:")
+    print(col0.tolist())
 
     for col in df_rules.columns[1:]:
         if col and isinstance(col, str):
