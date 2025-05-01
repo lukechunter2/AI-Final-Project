@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-# Load exercise data from Sheet1
+# Load exercise data
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
@@ -17,7 +17,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load rules from Sheet2 and Sheet3 (confirmed structure)
+# Load rules from Sheet2 and Sheet3
 try:
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
@@ -36,9 +36,9 @@ try:
     for focus in df_rules.index:
         row = df_rules.loc[focus]
         rules_by_focus[focus] = {
-            "reps": row.get("Number of Reps", "N/A"),
+            "reps": row.get("Number of Reps") or row.get("% Max Heart Rate", "N/A"),
             "rest": row.get("Rest Times", "N/A"),
-            "sets": row.get("Number of sets", "N/A"),
+            "sets": row.get("Number of sets", "N/A")
         }
 
     print("[INFO] Workout rules loaded successfully.")
@@ -46,7 +46,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
 
-# Dropdown extraction
+# Dropdown option extraction
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
@@ -71,7 +71,7 @@ def get_dropdown_options():
             "access": []
         }
 
-# Main route to generate workout plan
+# Main workout plan route
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -91,7 +91,7 @@ def get_workouts():
         exercises = matching["Exercise"].dropna().tolist()
         plan = {f"Day {i+1}": [] for i in range(days)}
 
-        focus_key = focus.strip().lower()
+        focus_key = focus.strip().lower().replace("-", "_")  # Fix for endurance naming
         rule = rules_by_focus.get(focus_key, {})
 
         for i, exercise in enumerate(exercises):
@@ -111,7 +111,7 @@ def get_workouts():
 def get_options():
     return jsonify(get_dropdown_options())
 
-# Serve frontend files
+# Serve frontend
 @app.route('/')
 def serve_index():
     return send_from_directory('../frontend', 'index.html')
@@ -122,6 +122,7 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
