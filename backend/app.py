@@ -19,16 +19,18 @@ except Exception as e:
 
 # Load workout rules from Sheet2 and Sheet3 (final fix)
 try:
+    # Load and fix Sheet2
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=2)
-    df_rules2.columns = df_rules2.iloc[0]
+    df_rules2.columns = ["Rules"] + df_rules2.columns.tolist()[1:]
     df_rules2 = df_rules2.drop(index=0)
 
+    # Load and fix Sheet3
     df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", skiprows=3)
-    df_rules3.columns = df_rules3.iloc[0]
+    df_rules3.columns = ["Rules"] + df_rules3.columns.tolist()[1:]
     df_rules3 = df_rules3.drop(index=0)
 
+    # Merge and transpose
     df_rules = pd.concat([df_rules2, df_rules3], axis=1)
-
     df_rules = df_rules.set_index("Rules").T
     df_rules.index = df_rules.index.str.strip().str.lower()
 
@@ -41,10 +43,11 @@ try:
             "sets": row.get("Number of sets", "N/A"),
         }
 
-    print("[INFO] Workout rules loaded with manual headers.")
+    print("[INFO] Workout rules loaded successfully.")
 except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
+
 
 # Dropdown options
 def get_dropdown_options():
