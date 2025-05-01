@@ -23,28 +23,29 @@ document.addEventListener("DOMContentLoaded", () => {
       }, {});
     });
 
-focusSelect.addEventListener("change", () => {
-  const selectedFocus = focusSelect.value;
-  const subs = subcategoryMap[selectedFocus];
-
-  subcategorySelect.innerHTML = "";
-
-  if (!subs || subs.size === 0) {
-    const option = document.createElement("option");
-    option.value = selectedFocus;
-    option.textContent = "No subcategory";
-    subcategorySelect.appendChild(option);
-    subcategorySelect.disabled = true;
-  } else {
-    subcategorySelect.disabled = false;
-    [...subs].forEach(sub => {
+  focusSelect.addEventListener("change", () => {
+    const selectedFocus = focusSelect.value;
+    const subs = subcategoryMap[selectedFocus];
+  
+    subcategorySelect.innerHTML = "";
+  
+    if (!subs || subs.size === 0) {
       const option = document.createElement("option");
-      option.value = `${selectedFocus}-${sub}`;
-      option.textContent = sub;
+      option.value = selectedFocus;
+      option.textContent = "No subcategory";
       subcategorySelect.appendChild(option);
-    });
-  }
-});
+      subcategorySelect.disabled = true;
+    } else {
+      subcategorySelect.disabled = false;
+      [...subs].forEach(sub => {
+        const option = document.createElement("option");
+        option.value = `${selectedFocus}-${sub}`;
+        option.textContent = sub;
+        subcategorySelect.appendChild(option);
+      });
+    }
+  });
+
 
 
   function populateSelect(select, options) {
