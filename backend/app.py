@@ -17,16 +17,20 @@ except Exception as e:
     print(f"[ERROR] Failed to load Excel file: {e}")
     df = pd.DataFrame()
 
-# Load workout rules from Sheet2 and Sheet3 (final fix)
+# Load workout rules from Sheet2 + Sheet3 with manual header fix
 try:
-    # Load and fix Sheet2
-    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=2)
-    df_rules2.columns = ["Rules"] + df_rules2.columns.tolist()[1:]
+    # Sheet2
+    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=2, header=None)
+    df_rules2.columns = ["Rules"] + [f"col_{i}" for i in range(1, df_rules2.shape[1])]
+    df_rules2.columns.values[0] = "Rules"
+    df_rules2.columns = df_rules2.iloc[0]
     df_rules2 = df_rules2.drop(index=0)
 
-    # Load and fix Sheet3
-    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", skiprows=3)
-    df_rules3.columns = ["Rules"] + df_rules3.columns.tolist()[1:]
+    # Sheet3
+    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", skiprows=3, header=None)
+    df_rules3.columns = ["Rules"] + [f"col_{i}" for i in range(1, df_rules3.shape[1])]
+    df_rules3.columns.values[0] = "Rules"
+    df_rules3.columns = df_rules3.iloc[0]
     df_rules3 = df_rules3.drop(index=0)
 
     # Merge and transpose
@@ -48,8 +52,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
 
-
-# Dropdown options
+# Dropdown option extraction
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
@@ -74,7 +77,7 @@ def get_dropdown_options():
             "access": []
         }
 
-# Plan generation
+# Workout plan generation
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -125,6 +128,7 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
