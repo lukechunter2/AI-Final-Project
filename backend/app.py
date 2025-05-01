@@ -11,21 +11,23 @@ try:
     df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
     first_col_name = df.columns[0]
     df = df.rename(columns={first_col_name: "Exercise"})
-    df = df[df["Exercise"].str.lower() != "exercises"]  # Remove header row if present
+    df = df[df["Exercise"].str.lower() != "exercises"]  # Remove accidental header row
     print(f"[INFO] Loaded {len(df)} rows of exercise data.")
 except Exception as e:
     print(f"[ERROR] Failed to load Excel file: {e}")
     df = pd.DataFrame()
 
-# Load workout rules
+# Load workout rules (Sheet2 + Sheet3)
 try:
     df_rules1 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", header=1)
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=1)
     df_rules = pd.concat([df_rules1, df_rules2], axis=1)
+
     rules_by_focus = {}
     for col in df_rules.columns[1:]:
         if col and isinstance(col, str):
-            rules_by_focus[col] = {
+            key = col.strip().lower()  # Normalize for lookup
+            rules_by_focus[key] = {
                 "reps": df_rules.loc[df_rules.iloc[:, 0] == "Number of Reps", col].values[0],
                 "rest": df_rules.loc[df_rules.iloc[:, 0].str.contains("Rest", na=False), col].values[0],
                 "sets": df_rules.loc[df_rules.iloc[:, 0].str.contains("sets", case=False, na=False), col].values[0],
@@ -35,7 +37,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
 
-# Extract unique options for frontend dropdowns
+# Extract unique dropdown options
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
@@ -78,12 +80,16 @@ def get_workouts():
         matching = df[df.apply(row_matches, axis=1)]
         exercises = matching["Exercise"].dropna().tolist()
         plan = {f"Day {i+1}": [] for i in range(days)}
+
+        focus_key = focus.strip().lower()  # normalize for rule lookup
+        rule = rules_by_focus.get(focus_key, {})
+
         for i, exercise in enumerate(exercises):
             plan[f"Day {(i % days) + 1}"].append({
                 "exercise": exercise,
-                "sets": rules_by_focus.get(focus, {}).get("sets", ""),
-                "reps": rules_by_focus.get(focus, {}).get("reps", ""),
-                "rest": rules_by_focus.get(focus, {}).get("rest", "")
+                "sets": rule.get("sets", ""),
+                "reps": rule.get("reps", ""),
+                "rest": rule.get("rest", "")
             })
 
         return jsonify(plan)
@@ -95,7 +101,7 @@ def get_workouts():
 def get_options():
     return jsonify(get_dropdown_options())
 
-# Serve frontend files
+# Serve frontend
 @app.route('/')
 def serve_index():
     return send_from_directory('../frontend', 'index.html')
@@ -106,6 +112,7 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
