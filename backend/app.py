@@ -18,8 +18,8 @@ except Exception as e:
 
 # Load workout rules
 try:
-    df_rules1 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", header=1)
-    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=1)
+    df_rules1 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", header=0)
+    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=0)
     df_rules = pd.concat([df_rules1, df_rules2], axis=1)
 
     rules_by_focus = {}
