@@ -5,16 +5,38 @@ document.addEventListener("DOMContentLoaded", () => {
   const planDiv = document.getElementById("plan");
   const form = document.getElementById("workout-form");
 
+  let subcategoryMap = {};
+
   // Fetch dropdown options from backend
   fetch("/get_options")
     .then(res => res.json())
     .then(data => {
       populateSelect(focusSelect, data.focus);
-      populateSelect(subcategorySelect, data.subcategory);
       populateSelect(accessSelect, data.access);
+
+      // Build map of focus → subcategories
+      subcategoryMap = data.subcategory.reduce((map, tag) => {
+        const [focus, sub] = tag.split("-");
+        if (!map[focus]) map[focus] = new Set();
+        map[focus].add(sub);
+        return map;
+      }, {});
     });
 
+  focusSelect.addEventListener("change", () => {
+    const selectedFocus = focusSelect.value;
+    const subs = subcategoryMap[selectedFocus] || [];
+    subcategorySelect.innerHTML = "";
+    [...subs].forEach(sub => {
+      const option = document.createElement("option");
+      option.value = `${selectedFocus}-${sub}`;
+      option.textContent = sub;
+      subcategorySelect.appendChild(option);
+    });
+  });
+
   function populateSelect(select, options) {
+    select.innerHTML = "";
     options.forEach(opt => {
       const option = document.createElement("option");
       option.value = opt;
@@ -45,3 +67,4 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   });
 });
+
