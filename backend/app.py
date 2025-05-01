@@ -19,23 +19,15 @@ except Exception as e:
 
 # Load workout rules from Sheet2 + Sheet3 with manual header fix
 try:
-    # Sheet2
-    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=2, header=None)
-    df_rules2.columns = ["Rules"] + [f"col_{i}" for i in range(1, df_rules2.shape[1])]
-    df_rules2.columns.values[0] = "Rules"
+    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=2, header=None).T
     df_rules2.columns = df_rules2.iloc[0]
     df_rules2 = df_rules2.drop(index=0)
 
-    # Sheet3
-    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", skiprows=3, header=None)
-    df_rules3.columns = ["Rules"] + [f"col_{i}" for i in range(1, df_rules3.shape[1])]
-    df_rules3.columns.values[0] = "Rules"
+    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", skiprows=3, header=None).T
     df_rules3.columns = df_rules3.iloc[0]
     df_rules3 = df_rules3.drop(index=0)
 
-    # Merge and transpose
-    df_rules = pd.concat([df_rules2, df_rules3], axis=1)
-    df_rules = df_rules.set_index("Rules").T
+    df_rules = pd.concat([df_rules2, df_rules3], axis=0)
     df_rules.index = df_rules.index.str.strip().str.lower()
 
     rules_by_focus = {}
@@ -51,6 +43,8 @@ try:
 except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
+
+    
 
 # Dropdown option extraction
 def get_dropdown_options():
