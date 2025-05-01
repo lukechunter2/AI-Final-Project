@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-# Load exercise data from Sheet1
+# Load exercise data
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
@@ -17,14 +17,14 @@ except Exception as e:
     print(f"[ERROR] Failed to load Excel file: {e}")
     df = pd.DataFrame()
 
-# Load rules from Sheet2 + Sheet3 (transposed)
+# Load workout rules from Sheet2 and Sheet3 (final fix)
 try:
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=2)
-    df_rules2.columns = df_rules2.iloc[0]  # manually set header
+    df_rules2.columns = df_rules2.iloc[0]
     df_rules2 = df_rules2.drop(index=0)
 
     df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", skiprows=3)
-    df_rules3.columns = df_rules3.iloc[0]  # manually set header
+    df_rules3.columns = df_rules3.iloc[0]
     df_rules3 = df_rules3.drop(index=0)
 
     df_rules = pd.concat([df_rules2, df_rules3], axis=1)
@@ -46,8 +46,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
 
-
-# Provide dropdown options
+# Dropdown options
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
@@ -72,7 +71,7 @@ def get_dropdown_options():
             "access": []
         }
 
-# Main plan route
+# Plan generation
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -123,6 +122,7 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
