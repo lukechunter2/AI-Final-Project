@@ -19,8 +19,14 @@ except Exception as e:
 
 # Load rules from Sheet2 + Sheet3 (transposed)
 try:
-    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", header=2)
-    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=2)
+    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=2)
+    df_rules2.columns = df_rules2.iloc[0]  # manually set header
+    df_rules2 = df_rules2.drop(index=0)
+
+    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", skiprows=3)
+    df_rules3.columns = df_rules3.iloc[0]  # manually set header
+    df_rules3 = df_rules3.drop(index=0)
+
     df_rules = pd.concat([df_rules2, df_rules3], axis=1)
 
     df_rules = df_rules.set_index("Rules").T
@@ -35,10 +41,11 @@ try:
             "sets": row.get("Number of sets", "N/A"),
         }
 
-    print("[INFO] Workout rules loaded from transposed data.")
+    print("[INFO] Workout rules loaded with manual headers.")
 except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
+
 
 # Provide dropdown options
 def get_dropdown_options():
