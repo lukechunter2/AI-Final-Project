@@ -4,13 +4,17 @@ import os
 
 app = Flask(__name__)
 
-# Safely load the Excel file relative to this script
+# Safely load the Excel file
 EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
-df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1", header=2)
+df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
+
+# Rename first column (assumes it's the list of exercises)
+first_col_name = df.columns[0]
+df = df.rename(columns={first_col_name: "Exercise"})
 
 # Extract unique options for frontend dropdowns
 def get_dropdown_options():
-    values = df.drop(columns=['Unnamed: 0']).values.flatten()
+    values = df.drop(columns=["Exercise"]).values.flatten()
     values = pd.Series(values).dropna().unique()
     focus_options = sorted(set([val.split('-')[0] for val in values if '-' in val]))
     subcat_options = sorted(set([val for val in values if '-' in val]))
@@ -32,7 +36,7 @@ def get_workouts():
         tag in row.values for tag in [focus, subcategory, access]
     ), axis=1)]
 
-    exercises = matching['Unnamed: 0'].dropna().tolist()
+    exercises = matching["Exercise"].dropna().tolist()
     plan = {f"Day {i+1}": [] for i in range(days)}
     for i, exercise in enumerate(exercises):
         plan[f"Day {(i % days) + 1}"].append(exercise)
