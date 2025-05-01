@@ -21,7 +21,11 @@ def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
         values = pd.Series(values).dropna().unique()
-        focus_options = sorted(set([val.split('-')[0] for val in values if '-' in val]))
+        focus_options = sorted(set([
+            val.split('-')[0] if '-' in val else val
+            for val in values
+            if isinstance(val, str)
+        ]))
         subcat_options = sorted(set([val for val in values if '-' in val]))
         access_options = sorted(set([val for val in values if val in ['None', 'Low', 'Full']]))
         return {
@@ -36,6 +40,7 @@ def get_dropdown_options():
             "subcategory": [],
             "access": []
         }
+
 
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
