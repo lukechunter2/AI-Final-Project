@@ -17,7 +17,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load rules from Sheet2 and Sheet3
+# Load and merge rules
 try:
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
@@ -31,22 +31,32 @@ try:
 
     df_rules = pd.concat([df_rules2, df_rules3])
     df_rules.index = df_rules.index.str.strip().str.lower()
+    df_rules = df_rules[~df_rules.index.duplicated()]  # remove rows like '30 to 90 seconds'
 
     rules_by_focus = {}
     for focus in df_rules.index:
         row = df_rules.loc[focus]
-        rules_by_focus[focus] = {
-            "reps": row.get("Number of Reps") or row.get("% Max Heart Rate", "N/A"),
-            "rest": row.get("Rest Times", "N/A"),
-            "sets": row.get("Number of sets", "N/A")
-        }
 
-    print("[INFO] Workout rules loaded successfully.")
+        # Special handling for aerobic and anaerobic endurance
+        if focus in ["endurance_anaerobic", "endurance_aerobic"]:
+            rules_by_focus[focus] = {
+                "reps": row.get("Percentage of Max Heart rate", "N/A"),
+                "rest": row.get("Rest Times", "N/A"),
+                "sets": "N/A"
+            }
+        else:
+            rules_by_focus[focus] = {
+                "reps": row.get("Number of Reps", "N/A"),
+                "rest": row.get("Rest Times", "N/A"),
+                "sets": row.get("Number of sets", "N/A")
+            }
+
+    print("[INFO] Workout rules loaded and processed.")
 except Exception as e:
     print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
 
-# Dropdown option extraction
+# Dropdown generation
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
@@ -71,7 +81,7 @@ def get_dropdown_options():
             "access": []
         }
 
-# Main workout plan route
+# Workout generation
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -91,7 +101,7 @@ def get_workouts():
         exercises = matching["Exercise"].dropna().tolist()
         plan = {f"Day {i+1}": [] for i in range(days)}
 
-        focus_key = focus.strip().lower().replace("-", "_")  # Fix for endurance naming
+        focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
 
         for i, exercise in enumerate(exercises):
