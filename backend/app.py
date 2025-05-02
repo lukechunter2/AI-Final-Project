@@ -105,8 +105,6 @@ def get_workouts():
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
 
-        print(f"[DEBUG] Focus: {focus_key}, Rule: {rule}")
-
         for i, exercise in enumerate(exercises):
             plan[f"Day {(i % days) + 1}"].append({
                 "exercise": exercise,
@@ -122,9 +120,7 @@ def get_workouts():
 
 @app.route('/get_options', methods=['GET'])
 def get_options():
-    options = get_dropdown_options()
-    print(f"[DEBUG] Dropdown options: {options}")
-    return jsonify(options)
+    return jsonify(get_dropdown_options())
 
 # Serve frontend
 @app.route('/')
