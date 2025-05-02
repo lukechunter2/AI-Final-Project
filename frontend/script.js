@@ -67,6 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetch(`/get_workouts?${params.toString()}`)
       .then(res => res.json())
       .then(plan => {
+        console.log("[DEBUG] Received plan:", plan);
         planDiv.innerHTML = "";
         for (const [day, exercises] of Object.entries(plan)) {
           const section = document.createElement("div");
@@ -81,5 +82,4 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   });
 });
-
 
