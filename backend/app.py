@@ -17,23 +17,25 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load workout rules from Sheet2 and Sheet3 with proper manual header fix
+# Load workout rules from Sheet2 and Sheet3
 try:
-    # Load Sheet2
+    # Sheet2
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
     df_rules2 = df_rules2.drop(columns=df_rules2.columns[0])
     df_rules2 = df_rules2.set_index("Rules").T
 
-    # Load Sheet3 properly
-    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=1)
+    # Sheet3 (manually set column headers)
+    df_rules3_raw = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=None)
+    df_rules3_raw.columns = ["Blank1", "Blank2", "Rules", "Endurance_Anaerobic", "Endurance_Aerobic"]
+    df_rules3 = df_rules3_raw[["Rules", "Endurance_Anaerobic", "Endurance_Aerobic"]].dropna()
     df_rules3 = df_rules3.set_index("Rules").T
 
-    # Merge both
+    # Combine rules
     df_rules = pd.concat([df_rules2, df_rules3])
     df_rules.index = df_rules.index.str.strip().str.lower()
-    df_rules.columns = df_rules.columns.str.strip()
 
+    # Unified rule logic for all categories
     rules_by_focus = {}
     for focus in df_rules.index:
         row = df_rules.loc[focus]
@@ -43,11 +45,10 @@ try:
             "sets": row.get("Number of sets", "N/A")
         }
 
-    print("[INFO] Workout rules loaded and working.")
+    print("[INFO] Workout rules fully loaded and validated.")
 except Exception as e:
-    print(f"[ERROR] Failed to load rules: {e}")
+    print(f"[ERROR] Failed to load workout rules: {e}")
     rules_by_focus = {}
-
 
 # Dropdown population
 def get_dropdown_options():
@@ -125,6 +126,7 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
