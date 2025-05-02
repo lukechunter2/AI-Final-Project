@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
   fetch("/get_options")
     .then(res => res.json())
     .then(data => {
+      console.log("[DEBUG] Received options:", data);
       populateSelect(focusSelect, data.focus);
       populateSelect(accessSelect, data.access);
 
@@ -82,4 +83,3 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   });
 });
-
