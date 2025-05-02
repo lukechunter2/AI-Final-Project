@@ -122,7 +122,9 @@ def get_workouts():
 
 @app.route('/get_options', methods=['GET'])
 def get_options():
-    return jsonify(get_dropdown_options())
+    options = get_dropdown_options()
+    print(f"[DEBUG] Dropdown options: {options}")
+    return jsonify(options)
 
 # Serve frontend
 @app.route('/')
