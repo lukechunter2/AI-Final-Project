@@ -19,37 +19,35 @@ except Exception as e:
 
 # Load workout rules from Sheet2 and Sheet3 with proper manual header fix
 try:
-    # Sheet2
+    # Load Sheet2
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
     df_rules2 = df_rules2.drop(columns=df_rules2.columns[0])
     df_rules2 = df_rules2.set_index("Rules").T
 
-    # Sheet3 (manual column header assignment)
-    df_rules3_raw = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=None)
-    df_rules3_raw.columns = ["Blank1", "Blank2", "Rules", "Endurance_Anaerobic", "Endurance_Aerobic"]
-    df_rules3 = df_rules3_raw[["Rules", "Endurance_Anaerobic", "Endurance_Aerobic"]].dropna()
+    # Load Sheet3 properly
+    df_rules3 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=1)
     df_rules3 = df_rules3.set_index("Rules").T
 
-    # Merge rules
+    # Merge both
     df_rules = pd.concat([df_rules2, df_rules3])
     df_rules.index = df_rules.index.str.strip().str.lower()
+    df_rules.columns = df_rules.columns.str.strip()
 
     rules_by_focus = {}
     for focus in df_rules.index:
         row = df_rules.loc[focus]
-
         rules_by_focus[focus] = {
-        "reps": row.get("Number of Reps", "N/A"),
-        "rest": row.get("Rest Times", "N/A"),
-        "sets": row.get("Number of sets", "N/A")
-    }
+            "reps": row.get("Number of Reps", "N/A"),
+            "rest": row.get("Rest Times", "N/A"),
+            "sets": row.get("Number of sets", "N/A")
+        }
 
-
-    print("[INFO] Workout rules fully loaded and validated.")
+    print("[INFO] Workout rules loaded and working.")
 except Exception as e:
-    print(f"[ERROR] Failed to load workout rules: {e}")
+    print(f"[ERROR] Failed to load rules: {e}")
     rules_by_focus = {}
+
 
 # Dropdown population
 def get_dropdown_options():
