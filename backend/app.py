@@ -1,3 +1,75 @@
+Rules
+Endurance_Anaerobic
+Endurance_Aerobic
+Rest Times
+30 to 90 seconds
+0 to 30 seconds
+Percentage of Max Heart rate
+80-90%
+70-80%
+Work to rest ratio
+1:2 to 1:4
+1:1 to 1:0
+Number of Reps
+12 to 15
+N/A
+Number of sets
+3 to 6
+N/A
+Percentage of Max
+50 to 70%
+N/A
+Suggested Fixes
+Check Column Names:
+
+Ensure that the column names in your Excel file match exactly with what your code expects. For example, % Max Heart Rate should be exactly as it is in the code.
+Focus Key Mapping:
+
+Ensure that the focus keys in your Excel file are correctly mapped to the keys used in your code. For example, Endurance_Anaerobic should be converted to endurance_anaerobic.
+Update Code Logic:
+
+Modify the code to handle the endurance categories correctly. For example, ensure that the correct columns are being accessed for endurance categories.
+Here's an updated version of the relevant section of your code:
+
+# Merge rules
+df_rules = pd.concat([df_rules2, df_rules3])
+df_rules.index = df_rules.index.str.strip().str.lower()
+
+rules_by_focus = {}
+for focus in df_rules.index:
+    row = df_rules.loc[focus]
+
+    if focus in ["endurance_anaerobic", "endurance_aerobic"]:
+        rules_by_focus[focus] = {
+            "reps": row.get("Percentage of Max Heart rate", "N/A"),
+            "rest": row.get("Rest Times", "N/A"),
+            "sets": "N/A"
+        }
+    else:
+        rules_by_focus[focus] = {
+            "reps": row.get("Number of Reps", "N/A"),
+            "rest": row.get("Rest Times", "N/A"),
+            "sets": row.get("Number of sets", "N/A")
+        }
+
+print("[INFO] Workout rules fully loaded and validated.")
+Try these suggestions and let me know if the issue persists or if you need further assistance!
+
+
+Edit in Pages
+
+
+
+
+
+AI-generated content may be incorrect
+You said:
+
+can you send me the fully edited app.py code?
+Copilot said:
+Copilot
+Sure, here's the fully edited app.py code with the suggested fixes for handling the endurance categories correctly:
+
 from flask import Flask, request, jsonify, send_from_directory
 import pandas as pd
 import os
@@ -17,7 +89,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load workout rules from Sheet2 and Sheet3
+# Load workout rules from Sheet2 and Sheet3 with proper manual header fix
 try:
     # Sheet2
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
@@ -25,25 +97,32 @@ try:
     df_rules2 = df_rules2.drop(columns=df_rules2.columns[0])
     df_rules2 = df_rules2.set_index("Rules").T
 
-    # Sheet3 (manually set column headers)
+    # Sheet3 (manual column header assignment)
     df_rules3_raw = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=None)
     df_rules3_raw.columns = ["Blank1", "Blank2", "Rules", "Endurance_Anaerobic", "Endurance_Aerobic"]
     df_rules3 = df_rules3_raw[["Rules", "Endurance_Anaerobic", "Endurance_Aerobic"]].dropna()
     df_rules3 = df_rules3.set_index("Rules").T
 
-    # Combine rules
+    # Merge rules
     df_rules = pd.concat([df_rules2, df_rules3])
     df_rules.index = df_rules.index.str.strip().str.lower()
 
-    # Unified rule logic for all categories
     rules_by_focus = {}
     for focus in df_rules.index:
         row = df_rules.loc[focus]
-        rules_by_focus[focus] = {
-            "reps": row.get("Number of Reps", "N/A"),
-            "rest": row.get("Rest Times", "N/A"),
-            "sets": row.get("Number of sets", "N/A")
-        }
+
+        if focus in ["endurance_anaerobic", "endurance_aerobic"]:
+            rules_by_focus[focus] = {
+                "reps": row.get("Percentage of Max Heart rate", "N/A"),
+                "rest": row.get("Rest Times", "N/A"),
+                "sets": "N/A"
+            }
+        else:
+            rules_by_focus[focus] = {
+                "reps": row.get("Number of Reps", "N/A"),
+                "rest": row.get("Rest Times", "N/A"),
+                "sets": row.get("Number of sets", "N/A")
+            }
 
     print("[INFO] Workout rules fully loaded and validated.")
 except Exception as e:
