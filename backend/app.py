@@ -4,68 +4,57 @@ import os
 
 app = Flask(__name__)
 
-# Load exercise data
+# Load exercises from Sheet1
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
     df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
-    first_col_name = df.columns[0]
-    df = df.rename(columns={first_col_name: "Exercise"})
+    df = df.rename(columns={df.columns[0]: "Exercise"})
     df = df[df["Exercise"].str.lower() != "exercises"]
-    print(f"[INFO] Loaded {len(df)} rows of exercise data.")
+    print(f"[INFO] Loaded {len(df)} exercises.")
 except Exception as e:
-    print(f"[ERROR] Failed to load exercise data: {e}")
+    print(f"[ERROR] Failed to load Sheet1: {e}")
     df = pd.DataFrame()
 
-# Load workout rules from Sheet2 and Sheet3 with proper manual header fix
+# Load workout rules from Sheet2 and Sheet3
 try:
     # Sheet2
-    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
-    df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
-    df_rules2 = df_rules2.drop(columns=df_rules2.columns[0])
-    df_rules2 = df_rules2.set_index("Rules").T
+    df2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
+    df2 = df2.rename(columns={df2.columns[1]: "Rules"})
+    df2 = df2.drop(columns=df2.columns[0])
+    df2 = df2.set_index("Rules").T
 
-    # Sheet3 (manual column header assignment)
-    df_rules3_raw = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=None)
-    df_rules3_raw.columns = ["Blank1", "Blank2", "Rules", "Endurance_Anaerobic", "Endurance_Aerobic"]
-    df_rules3 = df_rules3_raw[["Rules", "Endurance_Anaerobic", "Endurance_Aerobic"]].dropna()
-    df_rules3 = df_rules3.set_index("Rules").T
+    # Sheet3
+    df3_raw = pd.read_excel(EXCEL_PATH, sheet_name="Sheet3", header=1)
+    df3 = df3_raw.set_index("Rules").T
 
-    # Merge rules
-    df_rules = pd.concat([df_rules2, df_rules3])
+    # Merge and clean
+    df_rules = pd.concat([df2, df3])
     df_rules.index = df_rules.index.str.strip().str.lower()
+    df_rules.columns = df_rules.columns.str.strip()
 
     rules_by_focus = {}
     for focus in df_rules.index:
         row = df_rules.loc[focus]
+        rules_by_focus[focus] = {
+            "reps": row.get("Number of Reps", "N/A"),
+            "rest": row.get("Rest Times", "N/A"),
+            "sets": row.get("Number of sets", "N/A")
+        }
 
-        if focus in ["endurance_anaerobic", "endurance_aerobic"]:
-            rules_by_focus[focus] = {
-                "reps": row.get("% Max Heart Rate", "N/A"),
-                "rest": row.get("Rest Times", "N/A"),
-                "sets": "N/A"
-            }
-        else:
-            rules_by_focus[focus] = {
-                "reps": row.get("Number of Reps", "N/A"),
-                "rest": row.get("Rest Times", "N/A"),
-                "sets": row.get("Number of sets", "N/A")
-            }
-
-    print("[INFO] Workout rules fully loaded and validated.")
+    print("[INFO] Loaded rules for:", list(rules_by_focus.keys()))
 except Exception as e:
-    print(f"[ERROR] Failed to load workout rules: {e}")
+    print(f"[ERROR] Failed to load rules: {e}")
     rules_by_focus = {}
 
-# Dropdown population
+# Dropdown menu data
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
         values = pd.Series(values).dropna().unique()
         focus_options = sorted(set([
             val.split('-')[0] if '-' in val else val
-            for val in values
-            if isinstance(val, str) and val not in ['None', 'Low', 'Full']
+            for val in values if isinstance(val, str) and val not in ['None', 'Low', 'Full']
         ]))
         subcat_options = sorted(set([val for val in values if '-' in val]))
         access_options = sorted(set([val for val in values if val in ['None', 'Low', 'Full']]))
@@ -75,14 +64,10 @@ def get_dropdown_options():
             "access": access_options
         }
     except Exception as e:
-        print(f"[ERROR] Failed to extract dropdown options: {e}")
-        return {
-            "focus": [],
-            "subcategory": [],
-            "access": []
-        }
+        print(f"[ERROR] Dropdown generation failed: {e}")
+        return {"focus": [], "subcategory": [], "access": []}
 
-# Workout generation
+# Plan generation route
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -93,10 +78,11 @@ def get_workouts():
     try:
         def row_matches(row):
             values = [str(v) for v in row.values if pd.notna(v)]
-            has_focus = any(v.startswith(focus) for v in values)
-            has_subcategory = subcategory in values
-            has_access = access in values
-            return has_focus and has_subcategory and has_access
+            return (
+                any(v.startswith(focus) for v in values)
+                and subcategory in values
+                and access in values
+            )
 
         matching = df[df.apply(row_matches, axis=1)]
         exercises = matching["Exercise"].dropna().tolist()
@@ -115,7 +101,7 @@ def get_workouts():
 
         return jsonify(plan)
     except Exception as e:
-        print(f"[ERROR] Failed to generate plan: {e}")
+        print(f"[ERROR] Failed to generate workout plan: {e}")
         return jsonify({f"Day {i+1}": [] for i in range(days)})
 
 @app.route('/get_options', methods=['GET'])
@@ -133,4 +119,5 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
