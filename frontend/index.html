@@ -7,27 +7,27 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Workout Plan Generator</h1>
-    <form id="workout-form">
-      <label for="focus">Focus:</label>
-      <select id="focus" name="focus"></select>
+  <h1>Workout Plan Generator</h1>
+  <form id="workout-form">
+    <label for="focus">Workout Focus:</label>
+    <select id="focus" required></select>
 
-      <label for="subcategory">Subcategory:</label>
-      <select id="subcategory" name="subcategory"></select>
+    <label for="subcategory">Subcategory:</label>
+    <select id="subcategory" required></select>
 
-      <label for="access">Gym Access:</label>
-      <select id="access" name="access"></select>
+    <label for="access">Gym Access:</label>
+    <select id="access" required></select>
 
-      <label for="days">Workout Days:</label>
-      <input type="number" id="days" name="days" min="1" max="7" value="3">
+    <label for="days">Workout Days per Week:</label>
+    <input type="number" id="days" name="days" min="1" max="7" value="3" required>
 
-      <button type="submit">Generate Plan</button>
-    </form>
+    <button type="submit">Generate Plan</button>
+  </form>
 
-    <div id="plan"></div>
-  </div>
+  <div id="plan"></div>
+
   <script src="script.js"></script>
 </body>
 </html>
+
 
