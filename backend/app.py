@@ -139,6 +139,8 @@ def get_workouts():
                         chosen[-1] = b
 
             focus_key = focus.strip().lower().replace("-", "_")
+            print("[DEBUG] Focus key used for rules lookup:", focus_key)
+            print("[DEBUG] Available rule keys:", list(rules_by_focus.keys()))
             rule = rules_by_focus.get(focus_key, {})
             plan[f"Day {day+1}"] = [{
                 "exercise": e,
