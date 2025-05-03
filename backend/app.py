@@ -156,6 +156,6 @@ def serve_static(path):
     return send_from_directory('../frontend', path)
 
 if __name__ == '__main__':
-    app.run(debug=True
+    app.run(debug=True)
 
 
