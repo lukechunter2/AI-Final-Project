@@ -16,7 +16,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load rules from Sheet2 only (endurance removed)
+# Load rules from Sheet2 (endurance removed)
 try:
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
@@ -40,7 +40,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load rules: {e}")
     rules_by_focus = {}
 
-# Dropdown population
+# Dropdown options
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
@@ -72,7 +72,7 @@ def get_dropdown_options():
             "access": []
         }
 
-# Generate workout plan
+# Generate plan
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -92,19 +92,36 @@ def get_workouts():
             return has_focus and has_subcategory and has_access
 
         matching = df[df.apply(row_matches, axis=1)]
-        exercises = matching["Exercise"].dropna().tolist()
+        all_exercises = matching["Exercise"].dropna().tolist()
 
-        # Decide how many exercises per day
-        subcat_lower = subcategory.lower()
-        ex_per_day = 6 if "full" in subcat_lower else 4
+        # Decide exercises/day
+        is_fullbody = "full" in subcategory.lower()
+        ex_per_day = 6 if is_fullbody else 4
         total_needed = ex_per_day * days
 
-        # Repeat exercises if not enough
-        if len(exercises) < total_needed:
-            repeats = (total_needed // len(exercises)) + 1
-            exercises = (exercises * repeats)[:total_needed]
+        # Barbell filter
+        barbell_exs = [ex for ex in all_exercises if "barbell" in ex.lower() or "hexbar" in ex.lower()]
+        other_exs = [ex for ex in all_exercises if ex not in barbell_exs]
+
+        # Allow repeats
+        if access.lower() == "full":
+            required_per_day = 2 if is_fullbody else 1
+            barbell_pool = (barbell_exs * ((required_per_day * days) // len(barbell_exs) + 1))[:required_per_day * days]
+            other_needed = total_needed - (required_per_day * days)
+            other_pool = (other_exs * ((other_needed // len(other_exs)) + 1))[:other_needed]
         else:
-            exercises = exercises[:total_needed]
+            # No barbell requirements
+            barbell_pool = []
+            other_pool = (all_exercises * ((total_needed // len(all_exercises)) + 1))[:total_needed]
+
+        # Merge pools
+        combined = []
+        for i in range(days):
+            day_exs = []
+            if access.lower() == "full":
+                day_exs.extend(barbell_pool[i * required_per_day : (i + 1) * required_per_day])
+            day_exs.extend(other_pool[i * (ex_per_day - len(day_exs)) : (i + 1) * (ex_per_day - len(day_exs))])
+            combined.extend(day_exs)
 
         # Build plan
         plan = {}
@@ -112,7 +129,7 @@ def get_workouts():
         rule = rules_by_focus.get(focus_key, {})
 
         for i in range(days):
-            day_exercises = exercises[i * ex_per_day : (i + 1) * ex_per_day]
+            day_exercises = combined[i * ex_per_day : (i + 1) * ex_per_day]
             plan[f"Day {i+1}"] = [{
                 "exercise": ex,
                 "sets": rule.get("sets", "N/A"),
@@ -140,4 +157,5 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
