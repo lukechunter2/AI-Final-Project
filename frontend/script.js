@@ -1,3 +1,4 @@
+// === script.js ===
 document.addEventListener("DOMContentLoaded", () => {
   const focusSelect = document.getElementById("focus");
   const subcategorySelect = document.getElementById("subcategory");
@@ -7,13 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let subcategoryMap = {};
 
+  // Fetch dropdown options from backend
   fetch("/get_options")
     .then(res => res.json())
     .then(data => {
-      console.log("[DEBUG] Received options:", data);
       populateSelect(focusSelect, data.focus);
       populateSelect(accessSelect, data.access);
 
+      // Build map of focus → subcategories
       subcategoryMap = data.subcategory.reduce((map, tag) => {
         const [focus, sub] = tag.split("-");
         if (!map[focus]) map[focus] = new Set();
@@ -24,25 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   focusSelect.addEventListener("change", () => {
     const selectedFocus = focusSelect.value;
-    const subs = subcategoryMap[selectedFocus];
-
+    const subs = subcategoryMap[selectedFocus] || [];
     subcategorySelect.innerHTML = "";
-
-    if (!subs || subs.size === 0) {
+    [...subs].forEach(sub => {
       const option = document.createElement("option");
-      option.value = selectedFocus;
-      option.textContent = "No subcategory";
+      option.value = `${selectedFocus}-${sub}`;
+      option.textContent = sub;
       subcategorySelect.appendChild(option);
-      subcategorySelect.disabled = true;
-    } else {
-      subcategorySelect.disabled = false;
-      [...subs].forEach(sub => {
-        const option = document.createElement("option");
-        option.value = `${selectedFocus}-${sub}`;
-        option.textContent = sub;
-        subcategorySelect.appendChild(option);
-      });
-    }
+    });
   });
 
   function populateSelect(select, options) {
@@ -68,18 +59,15 @@ document.addEventListener("DOMContentLoaded", () => {
     fetch(`/get_workouts?${params.toString()}`)
       .then(res => res.json())
       .then(plan => {
-        console.log("[DEBUG] Received plan:", plan);
         planDiv.innerHTML = "";
         for (const [day, exercises] of Object.entries(plan)) {
           const section = document.createElement("div");
-          section.innerHTML = `<h2>${day}</h2><ul>${exercises.map(e => `
-            <li>
-              <strong>${e.exercise}</strong><br>
-              Sets: ${e.sets}, Reps: ${e.reps}, Rest: ${e.rest}
-            </li>
-          `).join('')}</ul>`;
+          section.innerHTML = `<h2>${day}</h2><ul>${exercises.map(e =>
+            `<li><a href="${e.url}" target="_blank">${e.exercise}</a> — Sets: ${e.sets}, Reps: ${e.reps}, Rest: ${e.rest}</li>`
+          ).join('')}</ul>`;
           planDiv.appendChild(section);
         }
       });
   });
 });
+
