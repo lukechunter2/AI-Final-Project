@@ -4,11 +4,11 @@ import os
 
 app = Flask(__name__)
 
-# Load exercise data
+# Load exercise data (correct header row)
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
-    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
+    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1", header=1)
     df = df.rename(columns={df.columns[0]: "Exercise"})
     df = df[df["Exercise"].str.lower() != "exercises"]
     df["Movement type"] = df["Movement type"].astype(str).str.strip().str.lower()
@@ -100,9 +100,8 @@ def get_workouts():
         # Barbell filter
         barbell_exs = matching[matching["Exercise"].str.lower().str.contains("barbell|hexbar")]["Exercise"].tolist()
 
-        # Determine rules per day
+        # Determine plan specs
         is_fullbody = "full" in subcategory.lower()
-        ex_per_day = 6 if is_fullbody else 4
         barbell_per_day = 2 if (is_fullbody and access.lower() == "full") else (1 if access.lower() == "full" else 0)
 
         movement_plan = []
@@ -123,7 +122,7 @@ def get_workouts():
                 selected += source[:count]
             movement_plan.append(selected)
 
-        # Add barbell exercises per day if needed
+        # Add barbell exercises if needed
         if barbell_per_day > 0:
             if len(barbell_exs) < barbell_per_day * days:
                 barbell_exs = barbell_exs * ((barbell_per_day * days) // max(1, len(barbell_exs)) + 1)
@@ -133,7 +132,7 @@ def get_workouts():
                     if b not in movement_plan[i]:
                         movement_plan[i][-1] = b  # overwrite last slot
 
-        # Build plan
+        # Build final response
         plan = {}
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
@@ -165,6 +164,7 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
