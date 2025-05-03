@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-# Load exercise data with manual column names
+# Load exercise data with fixed header handling
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
@@ -12,9 +12,9 @@ try:
         "Exercise", "Focus 1", "Focus 2", "Focus 3", "Focus 4", "Focus 5",
         "Subcategory", "Access", "Other Tag 1", "Other Tag 2", "Other Tag 3", "Movement type"
     ]
-    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1", header=1, names=columns)
+    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1", header=None, names=columns, skiprows=1)
     df = df[df["Exercise"].str.lower() != "exercises"]
-    df["Movement type"] = df["Movement type"].str.strip().str.lower()
+    df["Movement type"] = df["Movement type"].astype(str).str.strip().str.lower()
     print(f"[INFO] Loaded {len(df)} exercises.")
 except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
@@ -138,13 +138,13 @@ def get_workouts():
                     source *= (count // len(source)) + 1
                 selected += source[i * count : i * count + count]
 
-            # Barbell insertion (overwrite as needed)
+            # Barbell insertion (overwrite last few)
             if access.lower() == "full" and barbell_pool:
                 if len(barbell_pool) < barbell_needed:
                     barbell_pool *= (barbell_needed // len(barbell_pool)) + 1
                 for b in barbell_pool[i * barbell_needed : (i + 1) * barbell_needed]:
                     if b not in selected:
-                        selected[-1] = b  # replace last to guarantee barbell
+                        selected[-1] = b  # overwrite last one to ensure barbell
 
             plan[f"Day {i+1}"] = [{
                 "exercise": ex,
