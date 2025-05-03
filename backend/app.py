@@ -8,15 +8,16 @@ app = Flask(__name__)
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
-    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
+    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1", header=1)
     df = df.rename(columns={df.columns[0]: "Exercise"})
     df = df[df["Exercise"].str.lower() != "exercises"]
-    print(f"[INFO] Loaded {len(df)} rows of exercise data.")
+    df["Movement type"] = df["Movement type"].str.strip().str.lower()
+    print(f"[INFO] Loaded {len(df)} exercises.")
 except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load rules from Sheet2 (endurance removed)
+# Load rules (Sheet2 only)
 try:
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
@@ -35,7 +36,7 @@ try:
             "sets": row.get("Number of sets", "N/A")
         }
 
-    print("[INFO] Loaded rules for:", list(rules_by_focus.keys()))
+    print("[INFO] Rules loaded.")
 except Exception as e:
     print(f"[ERROR] Failed to load rules: {e}")
     rules_by_focus = {}
@@ -43,7 +44,7 @@ except Exception as e:
 # Dropdown options
 def get_dropdown_options():
     try:
-        values = df.drop(columns=["Exercise"]).values.flatten()
+        values = df.drop(columns=["Exercise", "Movement type"]).values.flatten()
         values = pd.Series(values).dropna().unique()
         focus_options = sorted(set([
             val.split('-')[0] if '-' in val else val
@@ -66,13 +67,9 @@ def get_dropdown_options():
         }
     except Exception as e:
         print(f"[ERROR] Failed to extract dropdown options: {e}")
-        return {
-            "focus": [],
-            "subcategory": [],
-            "access": []
-        }
+        return {"focus": [], "subcategory": [], "access": []}
 
-# Generate plan
+# Plan generation
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -86,56 +83,72 @@ def get_workouts():
 
         def row_matches(row):
             values = [str(v) for v in row.values if pd.notna(v)]
-            has_focus = any(v.startswith(focus) for v in values)
-            has_subcategory = subcategory in values
-            has_access = access in values
-            return has_focus and has_subcategory and has_access
+            return (
+                any(v.startswith(focus) for v in values)
+                and subcategory in values
+                and access in values
+            )
 
         matching = df[df.apply(row_matches, axis=1)]
-        all_exercises = matching["Exercise"].dropna().tolist()
+        matching = matching.dropna(subset=["Exercise", "Movement type"])
 
-        # Decide exercises/day
-        is_fullbody = "full" in subcategory.lower()
-        ex_per_day = 6 if is_fullbody else 4
-        total_needed = ex_per_day * days
+        # Group by movement type
+        push_pool = matching[matching["Movement type"] == "push"]["Exercise"].tolist()
+        pull_pool = matching[matching["Movement type"] == "pull"]["Exercise"].tolist()
+        legs_pool = matching[matching["Movement type"] == "legs"]["Exercise"].tolist()
 
-        # Barbell filter
-        barbell_exs = [ex for ex in all_exercises if "barbell" in ex.lower() or "hexbar" in ex.lower()]
-        other_exs = [ex for ex in all_exercises if ex not in barbell_exs]
-
-        # Allow repeats
+        # Barbell filter (Full access only)
+        barbell_pool = []
         if access.lower() == "full":
-            required_per_day = 2 if is_fullbody else 1
-            barbell_pool = (barbell_exs * ((required_per_day * days) // len(barbell_exs) + 1))[:required_per_day * days]
-            other_needed = total_needed - (required_per_day * days)
-            other_pool = (other_exs * ((other_needed // len(other_exs)) + 1))[:other_needed]
+            barbell_pool = matching[matching["Exercise"].str.lower().str.contains("barbell|hexbar")]["Exercise"].tolist()
+
+        # Determine daily structure
+        sub = subcategory.lower()
+        if "full" in sub:
+            daily_target = {"push": 2, "pull": 2, "legs": 2}
+            barbell_needed = 2
+        elif "upper" in sub:
+            daily_target = {"push": 2, "pull": 2}
+            barbell_needed = 1
+        elif "lower" in sub:
+            daily_target = {"legs": 4}
+            barbell_needed = 1
         else:
-            # No barbell requirements
-            barbell_pool = []
-            other_pool = (all_exercises * ((total_needed // len(all_exercises)) + 1))[:total_needed]
+            daily_target = {}
+            barbell_needed = 0
 
-        # Merge pools
-        combined = []
-        for i in range(days):
-            day_exs = []
-            if access.lower() == "full":
-                day_exs.extend(barbell_pool[i * required_per_day : (i + 1) * required_per_day])
-            day_exs.extend(other_pool[i * (ex_per_day - len(day_exs)) : (i + 1) * (ex_per_day - len(day_exs))])
-            combined.extend(day_exs)
-
-        # Build plan
-        plan = {}
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
+        plan = {}
 
         for i in range(days):
-            day_exercises = combined[i * ex_per_day : (i + 1) * ex_per_day]
+            selected = []
+
+            # Pull from movement pools
+            for group, count in daily_target.items():
+                source = {
+                    "push": push_pool,
+                    "pull": pull_pool,
+                    "legs": legs_pool
+                }[group]
+                if len(source) < count:
+                    source *= (count // len(source)) + 1
+                selected += source[i * count : i * count + count]
+
+            # Barbell insertion (overwrite as needed)
+            if access.lower() == "full" and barbell_pool:
+                if len(barbell_pool) < barbell_needed:
+                    barbell_pool *= (barbell_needed // len(barbell_pool)) + 1
+                for b in barbell_pool[i * barbell_needed : (i + 1) * barbell_needed]:
+                    if b not in selected:
+                        selected[-1] = b  # replace last to guarantee barbell
+
             plan[f"Day {i+1}"] = [{
                 "exercise": ex,
                 "sets": rule.get("sets", "N/A"),
                 "reps": rule.get("reps", "N/A"),
                 "rest": rule.get("rest", "N/A")
-            } for ex in day_exercises]
+            } for ex in selected]
 
         return jsonify(plan)
     except Exception as e:
@@ -146,7 +159,6 @@ def get_workouts():
 def get_options():
     return jsonify(get_dropdown_options())
 
-# Serve frontend
 @app.route('/')
 def serve_index():
     return send_from_directory('../frontend', 'index.html')
@@ -157,5 +169,6 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
