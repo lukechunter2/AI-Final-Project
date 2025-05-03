@@ -4,22 +4,66 @@ import os
 
 app = Flask(__name__)
 
-# Load exercise data (keep original header but fix movement column manually)
+# Hardcoded movement types
+movement_type_map = {
+    "Barbell Bench Press": "push",
+    "Barbell Squat": "legs",
+    "Barbell Front Squat": "legs",
+    "Barbell Deadlift": "legs",
+    "Barbell Overhead Shoulder Press": "push",
+    "Barbell Incline Bench": "push",
+    "Barbell Romanian Deadlift": "legs",
+    "Barbell Row": "pull",
+    "Hexbar Deadlift": "legs",
+    "Dumbell Bench Press": "push",
+    "Dumbell Overhead Shoulder Press": "push",
+    "Dumbell Incline Bench": "push",
+    "Dumbell Romanian Deadlift": "legs",
+    "Dumbell Row": "pull",
+    "Single Arm Dumbell Row": "pull",
+    "Dumbell Goblet Squat": "legs",
+    "Pushup": "push",
+    "Pullup": "pull",
+    "Dip": "push",
+    "Chin-up": "pull",
+    "Pistol Squat": "legs",
+    "Dumbell Bicep curls": "pull",
+    "Barbell Bicep Curls": "pull",
+    "Overhead Tricep extensions": "push",
+    "Dumbbell Single Leg Romanian Deadlifts": "legs",
+    "Hang Cleans": "legs",
+    "Power Cleans": "legs",
+    "Seated Box Jumps": "legs",
+    "Barbell Seated Box Jumps": "legs",
+    "Dumbell Seated Box Jumps": "legs",
+    "Bulgarian Split Squat": "legs",
+    "Bulgarian Split Squat w/ Jumps": "legs",
+    "Depth Jumps": "legs",
+    "Skater Jumps": "legs",
+    "Single leg landings": "legs",
+    "Double leg landings with weight": "legs",
+    "Nordic Curl": "legs",
+    "Burpees": "push",
+    "Burpee to box jump": "N/A",
+    "Thruster": "push",
+    "Box Jumps": "legs",
+    "Weighted Lunges": "legs",
+    "Lunges": "legs",
+    "Squats": "legs"
+}
+# Load exercise data
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
     df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
     df = df.rename(columns={df.columns[0]: "Exercise"})
     df = df[df["Exercise"].str.lower() != "exercises"]
-
-    # Manually set movement type column
-    df["Movement type"] = df[df.columns[-1]].astype(str).str.strip().str.lower()
     print(f"[INFO] Loaded {len(df)} rows of exercise data.")
 except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load rules from Sheet2 (endurance removed)
+# Load rules
 try:
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
@@ -29,15 +73,12 @@ try:
 
     rules_by_focus = {}
     for focus in df_rules2.index:
-        if "endurance" in focus:
-            continue
         row = df_rules2.loc[focus]
         rules_by_focus[focus] = {
             "reps": row.get("Number of Reps", "N/A"),
             "rest": row.get("Rest Times", "N/A"),
             "sets": row.get("Number of sets", "N/A")
         }
-
     print("[INFO] Loaded rules for:", list(rules_by_focus.keys()))
 except Exception as e:
     print(f"[ERROR] Failed to load rules: {e}")
@@ -46,22 +87,14 @@ except Exception as e:
 # Dropdown options
 def get_dropdown_options():
     try:
-        values = df.drop(columns=["Exercise", "Movement type"]).values.flatten()
+        values = df.drop(columns=["Exercise"]).values.flatten()
         values = pd.Series(values).dropna().unique()
         focus_options = sorted(set([
             val.split('-')[0] if '-' in val else val
-            for val in values
-            if isinstance(val, str)
-            and val not in ['None', 'Low', 'Full']
-            and "endurance" not in val.lower()
+            for val in values if isinstance(val, str) and val not in ['None', 'Low', 'Full']
         ]))
-        subcat_options = sorted(set([
-            val for val in values
-            if '-' in val and "endurance" not in val.lower()
-        ]))
-        access_options = sorted(set([
-            val for val in values if val in ['None', 'Low', 'Full']
-        ]))
+        subcat_options = sorted(set([val for val in values if '-' in val]))
+        access_options = sorted(set([val for val in values if val in ['None', 'Low', 'Full']]))
         return {
             "focus": focus_options,
             "subcategory": subcat_options,
@@ -69,9 +102,7 @@ def get_dropdown_options():
         }
     except Exception as e:
         print(f"[ERROR] Failed to extract dropdown options: {e}")
-        return {
-            "focus": [], "subcategory": [], "access": []
-        }
+        return {"focus": [], "subcategory": [], "access": []}
 
 # Generate plan
 @app.route('/get_workouts', methods=['GET'])
@@ -82,67 +113,59 @@ def get_workouts():
     days = int(request.args.get('days', 3))
 
     try:
-        if "endurance" in focus.lower():
-            return jsonify({f"Day {i+1}": [] for i in range(days)})
-
         def row_matches(row):
             values = [str(v) for v in row.values if pd.notna(v)]
-            has_focus = any(v.startswith(focus) for v in values)
-            has_subcategory = subcategory in values
-            has_access = access in values
-            return has_focus and has_subcategory and has_access
+            return (
+                any(v.startswith(focus) for v in values) and
+                subcategory in values and
+                access in values
+            )
 
         matching = df[df.apply(row_matches, axis=1)]
+        all_exs = matching["Exercise"].dropna().tolist()
 
-        # Group by movement type
-        push_exs = matching[matching["Movement type"] == "push"]["Exercise"].dropna().tolist()
-        pull_exs = matching[matching["Movement type"] == "pull"]["Exercise"].dropna().tolist()
-        leg_exs  = matching[matching["Movement type"] == "legs"]["Exercise"].dropna().tolist()
-        barbell_exs = matching[matching["Exercise"].str.lower().str.contains("barbell|hexbar")]["Exercise"].tolist()
+        # Organize by type
+        push_exs = [e for e in all_exs if movement_type_map.get(e, "N/A") == "push"]
+        pull_exs = [e for e in all_exs if movement_type_map.get(e, "N/A") == "pull"]
+        leg_exs  = [e for e in all_exs if movement_type_map.get(e, "N/A") == "legs"]
+        barbell_exs = [e for e in all_exs if "barbell" in e.lower() or "hexbar" in e.lower()]
 
-        # Determine plan specs
-        is_fullbody = "full" in subcategory.lower()
-        barbell_per_day = 2 if (is_fullbody and access.lower() == "full") else (1 if access.lower() == "full" else 0)
+        plan = {}
+        for day in range(days):
+            chosen = []
 
-        movement_plan = []
-        for _ in range(days):
-            needed = {"push": 0, "pull": 0, "legs": 0}
-            if is_fullbody:
+            if "full" in subcategory.lower():
                 needed = {"push": 2, "pull": 2, "legs": 2}
+                barbell_count = 2 if access.lower() == "full" else 0
             elif "upper" in subcategory.lower():
                 needed = {"push": 2, "pull": 2}
+                barbell_count = 1 if access.lower() == "full" else 0
             elif "lower" in subcategory.lower():
                 needed = {"legs": 4}
+                barbell_count = 1 if access.lower() == "full" else 0
+            else:
+                needed, barbell_count = {}, 0
 
-            selected = []
-            for mtype, count in needed.items():
-                source = {"push": push_exs, "pull": pull_exs, "legs": leg_exs}[mtype]
-                if len(source) < count:
-                    source = source * ((count // max(1, len(source))) + 1)
-                selected += source[:count]
-            movement_plan.append(selected)
+            for t, n in needed.items():
+                pool = {"push": push_exs, "pull": pull_exs, "legs": leg_exs}[t]
+                if len(pool) < n:
+                    pool *= (n // max(1, len(pool)) + 1)
+                chosen.extend(pool[:n])
 
-        # Add barbell if required
-        if barbell_per_day > 0:
-            if len(barbell_exs) < barbell_per_day * days:
-                barbell_exs *= ((barbell_per_day * days) // max(1, len(barbell_exs)) + 1)
-            for i in range(days):
-                inserts = barbell_exs[i * barbell_per_day : (i + 1) * barbell_per_day]
-                for b in inserts:
-                    if b not in movement_plan[i]:
-                        movement_plan[i][-1] = b
+            if barbell_count > 0:
+                if len(barbell_exs) < barbell_count:
+                    barbell_exs *= (barbell_count // max(1, len(barbell_exs)) + 1)
+                for b in barbell_exs[:barbell_count]:
+                    if b not in chosen:
+                        chosen[-1] = b
 
-        # Format plan
-        focus_key = focus.strip().lower().replace("-", "_")
-        rule = rules_by_focus.get(focus_key, {})
-        plan = {}
-        for i in range(days):
-            plan[f"Day {i+1}"] = [{
-                "exercise": ex,
+            rule = rules_by_focus.get(focus.strip().lower(), {})
+            plan[f"Day {day+1}"] = [{
+                "exercise": e,
                 "sets": rule.get("sets", "N/A"),
                 "reps": rule.get("reps", "N/A"),
                 "rest": rule.get("rest", "N/A")
-            } for ex in movement_plan[i]]
+            } for e in chosen]
 
         return jsonify(plan)
     except Exception as e:
@@ -163,9 +186,6 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
 
 
 
