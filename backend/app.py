@@ -1,3 +1,4 @@
+# === app.py ===
 from flask import Flask, request, jsonify, send_from_directory
 import pandas as pd
 import os
@@ -15,6 +16,20 @@ try:
 except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
+
+# Exercise video URLs
+exercise_videos = {
+    "Dumbbell Goblet Squat": "https://youtube.com/shorts/5Npi3fhL5u8?feature=share",
+    "Single Arm Dumbbell Row": "https://youtube.com/shorts/in0g2dqkeAI?feature=share",
+    "Dumbbell Romanian Deadlift": "https://youtube.com/shorts/8PW05t2HUj4?feature=share",
+    "Dumbbell Single Leg Romanian Deadlifts": "https://youtube.com/shorts/49SHsrPAYSU?feature=share",
+    "Pistol Squats": "https://youtube.com/shorts/ILy1e6ljki8?feature=share",
+    "Pushup": "https://youtube.com/shorts/OYZZbR0VSo0?feature=share",
+    "Seated Box Jumps": "https://youtube.com/shorts/ESkl9Zi292I?feature=share",
+    "Dumbbell Seated Box Jumps": "https://youtube.com/shorts/_tLzu1XqHLs?feature=share",
+    "Bulgarian Split Squat": "https://youtube.com/shorts/xj1aDwkiNg0?feature=share",
+    "Bulgarian Split Squat w/ Jumps": "https://youtube.com/shorts/rhadGt3EgnM?feature=share"
+}
 
 # Load rules from Sheet2 (endurance removed)
 try:
@@ -94,27 +109,22 @@ def get_workouts():
         matching = df[df.apply(row_matches, axis=1)]
         all_exercises = matching["Exercise"].dropna().tolist()
 
-        # Decide exercises/day
         is_fullbody = "full" in subcategory.lower()
         ex_per_day = 6 if is_fullbody else 4
         total_needed = ex_per_day * days
 
-        # Barbell filter
         barbell_exs = [ex for ex in all_exercises if "barbell" in ex.lower() or "hexbar" in ex.lower()]
         other_exs = [ex for ex in all_exercises if ex not in barbell_exs]
 
-        # Allow repeats
         if access.lower() == "full":
             required_per_day = 2 if is_fullbody else 1
             barbell_pool = (barbell_exs * ((required_per_day * days) // len(barbell_exs) + 1))[:required_per_day * days]
             other_needed = total_needed - (required_per_day * days)
             other_pool = (other_exs * ((other_needed // len(other_exs)) + 1))[:other_needed]
         else:
-            # No barbell requirements
             barbell_pool = []
             other_pool = (all_exercises * ((total_needed // len(all_exercises)) + 1))[:total_needed]
 
-        # Merge pools
         combined = []
         for i in range(days):
             day_exs = []
@@ -123,7 +133,6 @@ def get_workouts():
             day_exs.extend(other_pool[i * (ex_per_day - len(day_exs)) : (i + 1) * (ex_per_day - len(day_exs))])
             combined.extend(day_exs)
 
-        # Build plan
         plan = {}
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
@@ -134,7 +143,8 @@ def get_workouts():
                 "exercise": ex,
                 "sets": rule.get("sets", "N/A"),
                 "reps": rule.get("reps", "N/A"),
-                "rest": rule.get("rest", "N/A")
+                "rest": rule.get("rest", "N/A"),
+                "url": exercise_videos.get(ex, "#")
             } for ex in day_exercises]
 
         return jsonify(plan)
@@ -146,7 +156,6 @@ def get_workouts():
 def get_options():
     return jsonify(get_dropdown_options())
 
-# Serve frontend
 @app.route('/')
 def serve_index():
     return send_from_directory('../frontend', 'index.html')
@@ -157,5 +166,4 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
 
