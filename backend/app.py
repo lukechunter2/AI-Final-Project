@@ -11,7 +11,6 @@ try:
     df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
     df = df.rename(columns={df.columns[0]: "Exercise"})
     df = df[df["Exercise"].str.lower() != "exercises"]
-    df["Movement type"] = df["Movement type"].astype(str).str.strip().str.lower()
     print(f"[INFO] Loaded {len(df)} rows of exercise data.")
 except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
@@ -44,7 +43,7 @@ except Exception as e:
 # Dropdown options
 def get_dropdown_options():
     try:
-        values = df.drop(columns=["Exercise", "Movement type"]).values.flatten()
+        values = df.drop(columns=["Exercise"]).values.flatten()
         values = pd.Series(values).dropna().unique()
         focus_options = sorted(set([
             val.split('-')[0] if '-' in val else val
@@ -68,7 +67,9 @@ def get_dropdown_options():
     except Exception as e:
         print(f"[ERROR] Failed to extract dropdown options: {e}")
         return {
-            "focus": [], "subcategory": [], "access": []
+            "focus": [],
+            "subcategory": [],
+            "access": []
         }
 
 # Generate plan
@@ -91,57 +92,50 @@ def get_workouts():
             return has_focus and has_subcategory and has_access
 
         matching = df[df.apply(row_matches, axis=1)]
+        all_exercises = matching["Exercise"].dropna().tolist()
 
-        # Separate by movement type
-        push_exs = matching[matching["Movement type"] == "push"]["Exercise"].tolist()
-        pull_exs = matching[matching["Movement type"] == "pull"]["Exercise"].tolist()
-        leg_exs = matching[matching["Movement type"] == "legs"]["Exercise"].tolist()
-
-        # Barbell filtering (for Full access)
-        barbell_exs = [ex for ex in matching["Exercise"] if "barbell" in ex.lower() or "hexbar" in ex.lower()]
-
-        plan = {}
+        # Decide exercises/day
         is_fullbody = "full" in subcategory.lower()
+        ex_per_day = 6 if is_fullbody else 4
+        total_needed = ex_per_day * days
+
+        # Barbell filter
+        barbell_exs = [ex for ex in all_exercises if "barbell" in ex.lower() or "hexbar" in ex.lower()]
+        other_exs = [ex for ex in all_exercises if ex not in barbell_exs]
+
+        # Allow repeats
+        if access.lower() == "full":
+            required_per_day = 2 if is_fullbody else 1
+            barbell_pool = (barbell_exs * ((required_per_day * days) // len(barbell_exs) + 1))[:required_per_day * days]
+            other_needed = total_needed - (required_per_day * days)
+            other_pool = (other_exs * ((other_needed // len(other_exs)) + 1))[:other_needed]
+        else:
+            # No barbell requirements
+            barbell_pool = []
+            other_pool = (all_exercises * ((total_needed // len(all_exercises)) + 1))[:total_needed]
+
+        # Merge pools
+        combined = []
+        for i in range(days):
+            day_exs = []
+            if access.lower() == "full":
+                day_exs.extend(barbell_pool[i * required_per_day : (i + 1) * required_per_day])
+            day_exs.extend(other_pool[i * (ex_per_day - len(day_exs)) : (i + 1) * (ex_per_day - len(day_exs))])
+            combined.extend(day_exs)
+
+        # Build plan
+        plan = {}
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
 
-        for day in range(days):
-            day_exs = []
-
-            if is_fullbody:
-                needed = {"push": 2, "pull": 2, "legs": 2}
-            elif "upper" in subcategory.lower():
-                needed = {"push": 2, "pull": 2}
-            elif "lower" in subcategory.lower():
-                needed = {"legs": 4}
-            else:
-                needed = {}
-
-            # Pull from each group with repeats allowed
-            for mtype, count in needed.items():
-                pool = {"push": push_exs, "pull": pull_exs, "legs": leg_exs}.get(mtype, [])
-                if len(pool) < count:
-                    pool *= (count // max(len(pool), 1)) + 1
-                start = (day * count) % len(pool)
-                day_exs.extend(pool[start : start + count])
-
-            # Add barbell exercises if full access
-            if access.lower() == "full":
-                barbell_needed = 2 if is_fullbody else 1
-                if len(barbell_exs) < barbell_needed:
-                    barbell_exs *= (barbell_needed // max(len(barbell_exs), 1)) + 1
-                start = (day * barbell_needed) % len(barbell_exs)
-                inserts = barbell_exs[start : start + barbell_needed]
-                for b in inserts:
-                    if b not in day_exs:
-                        day_exs[-1] = b  # replace final one to force inclusion
-
-            plan[f"Day {day+1}"] = [{
+        for i in range(days):
+            day_exercises = combined[i * ex_per_day : (i + 1) * ex_per_day]
+            plan[f"Day {i+1}"] = [{
                 "exercise": ex,
                 "sets": rule.get("sets", "N/A"),
                 "reps": rule.get("reps", "N/A"),
                 "rest": rule.get("rest", "N/A")
-            } for ex in day_exs]
+            } for ex in day_exercises]
 
         return jsonify(plan)
     except Exception as e:
