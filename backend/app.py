@@ -4,12 +4,15 @@ import os
 
 app = Flask(__name__)
 
-# Load exercise data
+# Load exercise data with manual column names
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
-    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1", header=1)
-    df = df.rename(columns={df.columns[0]: "Exercise"})
+    columns = [
+        "Exercise", "Focus 1", "Focus 2", "Focus 3", "Focus 4", "Focus 5",
+        "Subcategory", "Access", "Other Tag 1", "Other Tag 2", "Other Tag 3", "Movement type"
+    ]
+    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1", header=1, names=columns)
     df = df[df["Exercise"].str.lower() != "exercises"]
     df["Movement type"] = df["Movement type"].str.strip().str.lower()
     print(f"[INFO] Loaded {len(df)} exercises.")
@@ -17,7 +20,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load rules (Sheet2 only)
+# Load rules from Sheet2 only
 try:
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
