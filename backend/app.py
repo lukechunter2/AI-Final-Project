@@ -16,7 +16,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load rules (Sheet2 only, no endurance)
+# Load rules from Sheet2 only (endurance removed)
 try:
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
@@ -27,7 +27,7 @@ try:
     rules_by_focus = {}
     for focus in df_rules2.index:
         if "endurance" in focus:
-            continue  # 🔥 Remove endurance from rules
+            continue
         row = df_rules2.loc[focus]
         rules_by_focus[focus] = {
             "reps": row.get("Number of Reps", "N/A"),
@@ -40,7 +40,7 @@ except Exception as e:
     print(f"[ERROR] Failed to load rules: {e}")
     rules_by_focus = {}
 
-# Dropdown options with endurance removed
+# Dropdown population
 def get_dropdown_options():
     try:
         values = df.drop(columns=["Exercise"]).values.flatten()
@@ -50,7 +50,7 @@ def get_dropdown_options():
             for val in values
             if isinstance(val, str)
             and val not in ['None', 'Low', 'Full']
-            and "endurance" not in val.lower()  # ❌ Exclude endurance
+            and "endurance" not in val.lower()
         ]))
         subcat_options = sorted(set([
             val for val in values
@@ -65,10 +65,14 @@ def get_dropdown_options():
             "access": access_options
         }
     except Exception as e:
-        print(f"[ERROR] Dropdown generation failed: {e}")
-        return {"focus": [], "subcategory": [], "access": []}
+        print(f"[ERROR] Failed to extract dropdown options: {e}")
+        return {
+            "focus": [],
+            "subcategory": [],
+            "access": []
+        }
 
-# Workout plan generator
+# Generate workout plan
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -89,18 +93,32 @@ def get_workouts():
 
         matching = df[df.apply(row_matches, axis=1)]
         exercises = matching["Exercise"].dropna().tolist()
-        plan = {f"Day {i+1}": [] for i in range(days)}
 
+        # Decide how many exercises per day
+        subcat_lower = subcategory.lower()
+        ex_per_day = 6 if "full" in subcat_lower else 4
+        total_needed = ex_per_day * days
+
+        # Repeat exercises if not enough
+        if len(exercises) < total_needed:
+            repeats = (total_needed // len(exercises)) + 1
+            exercises = (exercises * repeats)[:total_needed]
+        else:
+            exercises = exercises[:total_needed]
+
+        # Build plan
+        plan = {}
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
 
-        for i, exercise in enumerate(exercises):
-            plan[f"Day {(i % days) + 1}"].append({
-                "exercise": exercise,
+        for i in range(days):
+            day_exercises = exercises[i * ex_per_day : (i + 1) * ex_per_day]
+            plan[f"Day {i+1}"] = [{
+                "exercise": ex,
                 "sets": rule.get("sets", "N/A"),
                 "reps": rule.get("reps", "N/A"),
                 "rest": rule.get("rest", "N/A")
-            })
+            } for ex in day_exercises]
 
         return jsonify(plan)
     except Exception as e:
@@ -122,7 +140,4 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
 
