@@ -4,14 +4,13 @@ import os
 
 app = Flask(__name__)
 
-# Load exercise data (correct header row)
+# Load exercise data
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
     print(f"[INFO] Loading Excel from: {EXCEL_PATH}")
-    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1", header=1)
+    df = pd.read_excel(EXCEL_PATH, sheet_name="Sheet1")
     df = df.rename(columns={df.columns[0]: "Exercise"})
     df = df[df["Exercise"].str.lower() != "exercises"]
-    df["Movement type"] = df["Movement type"].astype(str).str.strip().str.lower()
     print(f"[INFO] Loaded {len(df)} rows of exercise data.")
 except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
@@ -44,7 +43,7 @@ except Exception as e:
 # Dropdown options
 def get_dropdown_options():
     try:
-        values = df.drop(columns=["Exercise", "Movement type"]).values.flatten()
+        values = df.drop(columns=["Exercise"]).values.flatten()
         values = pd.Series(values).dropna().unique()
         focus_options = sorted(set([
             val.split('-')[0] if '-' in val else val
@@ -68,7 +67,9 @@ def get_dropdown_options():
     except Exception as e:
         print(f"[ERROR] Failed to extract dropdown options: {e}")
         return {
-            "focus": [], "subcategory": [], "access": []
+            "focus": [],
+            "subcategory": [],
+            "access": []
         }
 
 # Generate plan
@@ -91,58 +92,50 @@ def get_workouts():
             return has_focus and has_subcategory and has_access
 
         matching = df[df.apply(row_matches, axis=1)]
+        all_exercises = matching["Exercise"].dropna().tolist()
 
-        # Group by movement type
-        push_exs = matching[matching["Movement type"] == "push"]["Exercise"].dropna().tolist()
-        pull_exs = matching[matching["Movement type"] == "pull"]["Exercise"].dropna().tolist()
-        leg_exs  = matching[matching["Movement type"] == "legs"]["Exercise"].dropna().tolist()
+        # Decide exercises/day
+        is_fullbody = "full" in subcategory.lower()
+        ex_per_day = 6 if is_fullbody else 4
+        total_needed = ex_per_day * days
 
         # Barbell filter
-        barbell_exs = matching[matching["Exercise"].str.lower().str.contains("barbell|hexbar")]["Exercise"].tolist()
+        barbell_exs = [ex for ex in all_exercises if "barbell" in ex.lower() or "hexbar" in ex.lower()]
+        other_exs = [ex for ex in all_exercises if ex not in barbell_exs]
 
-        # Determine plan specs
-        is_fullbody = "full" in subcategory.lower()
-        barbell_per_day = 2 if (is_fullbody and access.lower() == "full") else (1 if access.lower() == "full" else 0)
+        # Allow repeats
+        if access.lower() == "full":
+            required_per_day = 2 if is_fullbody else 1
+            barbell_pool = (barbell_exs * ((required_per_day * days) // len(barbell_exs) + 1))[:required_per_day * days]
+            other_needed = total_needed - (required_per_day * days)
+            other_pool = (other_exs * ((other_needed // len(other_exs)) + 1))[:other_needed]
+        else:
+            # No barbell requirements
+            barbell_pool = []
+            other_pool = (all_exercises * ((total_needed // len(all_exercises)) + 1))[:total_needed]
 
-        movement_plan = []
-        for _ in range(days):
-            needed = {"push": 0, "pull": 0, "legs": 0}
-            if is_fullbody:
-                needed = {"push": 2, "pull": 2, "legs": 2}
-            elif "upper" in subcategory.lower():
-                needed = {"push": 2, "pull": 2}
-            elif "lower" in subcategory.lower():
-                needed = {"legs": 4}
+        # Merge pools
+        combined = []
+        for i in range(days):
+            day_exs = []
+            if access.lower() == "full":
+                day_exs.extend(barbell_pool[i * required_per_day : (i + 1) * required_per_day])
+            day_exs.extend(other_pool[i * (ex_per_day - len(day_exs)) : (i + 1) * (ex_per_day - len(day_exs))])
+            combined.extend(day_exs)
 
-            selected = []
-            for mtype, count in needed.items():
-                source = {"push": push_exs, "pull": pull_exs, "legs": leg_exs}[mtype]
-                if len(source) < count:
-                    source = source * ((count // max(1, len(source))) + 1)
-                selected += source[:count]
-            movement_plan.append(selected)
-
-        # Add barbell exercises if needed
-        if barbell_per_day > 0:
-            if len(barbell_exs) < barbell_per_day * days:
-                barbell_exs = barbell_exs * ((barbell_per_day * days) // max(1, len(barbell_exs)) + 1)
-            for i in range(days):
-                barbell_set = barbell_exs[i * barbell_per_day : (i + 1) * barbell_per_day]
-                for b in barbell_set:
-                    if b not in movement_plan[i]:
-                        movement_plan[i][-1] = b  # overwrite last slot
-
-        # Build final response
+        # Build plan
         plan = {}
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
+
         for i in range(days):
+            day_exercises = combined[i * ex_per_day : (i + 1) * ex_per_day]
             plan[f"Day {i+1}"] = [{
                 "exercise": ex,
                 "sets": rule.get("sets", "N/A"),
                 "reps": rule.get("reps", "N/A"),
                 "rest": rule.get("rest", "N/A")
-            } for ex in movement_plan[i]]
+            } for ex in day_exercises]
 
         return jsonify(plan)
     except Exception as e:
@@ -164,7 +157,6 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
 
 
 
