@@ -6,51 +6,22 @@ app = Flask(__name__)
 
 # Hardcoded movement types
 movement_type_map = {
-    "Barbell Bench Press": "push",
-    "Barbell Squat": "legs",
-    "Barbell Front Squat": "legs",
-    "Barbell Deadlift": "legs",
-    "Barbell Overhead Shoulder Press": "push",
-    "Barbell Incline Bench": "push",
-    "Barbell Romanian Deadlift": "legs",
-    "Barbell Row": "pull",
-    "Hexbar Deadlift": "legs",
-    "Dumbell Bench Press": "push",
-    "Dumbell Overhead Shoulder Press": "push",
-    "Dumbell Incline Bench": "push",
-    "Dumbell Romanian Deadlift": "legs",
-    "Dumbell Row": "pull",
-    "Single Arm Dumbell Row": "pull",
-    "Dumbell Goblet Squat": "legs",
-    "Pushup": "push",
-    "Pullup": "pull",
-    "Dip": "push",
-    "Chin-up": "pull",
-    "Pistol Squat": "legs",
-    "Dumbell Bicep curls": "pull",
-    "Barbell Bicep Curls": "pull",
-    "Overhead Tricep extensions": "push",
-    "Dumbbell Single Leg Romanian Deadlifts": "legs",
-    "Hang Cleans": "legs",
-    "Power Cleans": "legs",
-    "Seated Box Jumps": "legs",
-    "Barbell Seated Box Jumps": "legs",
-    "Dumbell Seated Box Jumps": "legs",
-    "Bulgarian Split Squat": "legs",
-    "Bulgarian Split Squat w/ Jumps": "legs",
-    "Depth Jumps": "legs",
-    "Skater Jumps": "legs",
-    "Single leg landings": "legs",
-    "Double leg landings with weight": "legs",
-    "Nordic Curl": "legs",
-    "Burpees": "push",
-    "Burpee to box jump": "N/A",
-    "Thruster": "push",
-    "Box Jumps": "legs",
-    "Weighted Lunges": "legs",
-    "Lunges": "legs",
-    "Squats": "legs"
+    "Barbell Bench Press": "push", "Barbell Squat": "legs", "Barbell Front Squat": "legs",
+    "Barbell Deadlift": "legs", "Barbell Overhead Shoulder Press": "push", "Barbell Incline Bench": "push",
+    "Barbell Romanian Deadlift": "legs", "Barbell Row": "pull", "Hexbar Deadlift": "legs",
+    "Dumbell Bench Press": "push", "Dumbell Overhead Shoulder Press": "push", "Dumbell Incline Bench": "push",
+    "Dumbell Romanian Deadlift": "legs", "Dumbell Row": "pull", "Single Arm Dumbell Row": "pull",
+    "Dumbell Goblet Squat": "legs", "Pushup": "push", "Pullup": "pull", "Dip": "push", "Chin-up": "pull",
+    "Pistol Squat": "legs", "Dumbell Bicep curls": "pull", "Barbell Bicep Curls": "pull",
+    "Overhead Tricep extensions": "push", "Dumbbell Single Leg Romanian Deadlifts": "legs",
+    "Hang Cleans": "legs", "Power Cleans": "legs", "Seated Box Jumps": "legs", "Barbell Seated Box Jumps": "legs",
+    "Dumbell Seated Box Jumps": "legs", "Bulgarian Split Squat": "legs", "Bulgarian Split Squat w/ Jumps": "legs",
+    "Depth Jumps": "legs", "Skater Jumps": "legs", "Single leg landings": "legs",
+    "Double leg landings with weight": "legs", "Nordic Curl": "legs", "Burpees": "push",
+    "Burpee to box jump": "N/A", "Thruster": "push", "Box Jumps": "legs", "Weighted Lunges": "legs",
+    "Lunges": "legs", "Squats": "legs"
 }
+
 # Load exercise data
 try:
     EXCEL_PATH = os.path.join(os.path.dirname(__file__), 'data', 'exercises.xlsx')
@@ -91,10 +62,18 @@ def get_dropdown_options():
         values = pd.Series(values).dropna().unique()
         focus_options = sorted(set([
             val.split('-')[0] if '-' in val else val
-            for val in values if isinstance(val, str) and val not in ['None', 'Low', 'Full']
+            for val in values
+            if isinstance(val, str)
+            and val not in ['None', 'Low', 'Full']
+            and "endurance" not in val.lower()
         ]))
-        subcat_options = sorted(set([val for val in values if '-' in val]))
-        access_options = sorted(set([val for val in values if val in ['None', 'Low', 'Full']]))
+        subcat_options = sorted(set([
+            val for val in values
+            if '-' in val and "endurance" not in val.lower()
+        ]))
+        access_options = sorted(set([
+            val for val in values if val in ['None', 'Low', 'Full']
+        ]))
         return {
             "focus": focus_options,
             "subcategory": subcat_options,
@@ -159,7 +138,8 @@ def get_workouts():
                     if b not in chosen:
                         chosen[-1] = b
 
-            rule = rules_by_focus.get(focus.strip().lower(), {})
+            focus_key = focus.strip().lower().replace("-", "_")
+            rule = rules_by_focus.get(focus_key, {})
             plan[f"Day {day+1}"] = [{
                 "exercise": e,
                 "sets": rule.get("sets", "N/A"),
@@ -186,6 +166,5 @@ def serve_static(path):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
 
 
