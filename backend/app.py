@@ -16,7 +16,47 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Load rules from Sheet2
+# Video links dictionary
+video_links = {
+    "dumbell shoulder press": "https://youtube.com/shorts/XAqaKEreDqc?feature=share",
+    "dumbell curls": "https://youtube.com/shorts/Y_Cb30nyThA?feature=share",
+    "dumbell row": "https://youtube.com/shorts/kgU5z_m0UW4?feature=share",
+    "barbell curl": "https://youtube.com/shorts/UMhoqki749s?feature=share",
+    "pull-up": "https://youtube.com/shorts/GBEr1aQor80?feature=share",
+    "chin-up": "https://youtube.com/shorts/Eiq4gGEXKsg?feature=share",
+    "barbell box jumps": "https://youtube.com/shorts/45zktYU80fo?feature=share",
+    "barbell incline bench": "https://youtube.com/shorts/4dY3sMOO1p8?feature=share",
+    "barbell bench press": "https://youtube.com/shorts/-8OmnyNHX0E?feature=share",
+    "barbel rdl": "https://youtube.com/shorts/zwEgDxTRtUw?feature=share",
+    "barbell row": "https://youtube.com/shorts/fdId_O6KQbE?feature=share",
+    "hang cleans": "https://youtube.com/shorts/7tLkDFPlB2Y?feature=share",
+    "power cleans": "https://youtube.com/shorts/ToaSgMW54No?feature=share",
+    "barbell overhead shoulder press": "https://youtube.com/shorts/IjSFafTPt3I?feature=share",
+    "barbell deadlift": "https://youtube.com/shorts/tUpwzBr34tc?feature=share",
+    "barbell front squat": "https://youtube.com/shorts/xx7Nud5KzGA?feature=share",
+    "barbell squat": "https://youtube.com/shorts/7xETnBj2lEo?feature=share",
+    "ball slams (side)": "https://youtube.com/shorts/kxomaanj35Q?feature=share",
+    "ball slams (down)": "https://youtube.com/shorts/ieyndX_2GmQ?feature=share",
+    "medicine ball sit ups": "https://youtube.com/shorts/tRYzXoNgACE?feature=share",
+    "burpees": "https://youtube.com/shorts/joucR5VPSkk?feature=share",
+    "burpee to box jump": "https://youtube.com/shorts/DgkKAC_pnS4?feature=share",
+    "single leg landings": "https://youtube.com/shorts/Y_iTJL_8_5c?feature=share",
+    "double leg landings with weight": "https://youtube.com/shorts/2_P3s3lZPGA?feature=share",
+    "box jumps": "https://youtube.com/shorts/1fAAk8YTKk4?feature=share",
+    "lunges": "https://youtube.com/shorts/y8oSzst1Jlg?feature=share",
+    "weighted lunges": "https://youtube.com/shorts/r-WQYMRUBJQ?feature=share",
+    "squats": "https://youtube.com/shorts/zlXdtRvG8SA?feature=share",
+    "skater jumps": "https://youtube.com/shorts/mPOuTnCW-C4?feature=share",
+    "depth jumps": "https://youtube.com/shorts/aHD5eIyUQ3Y?feature=share",
+    "overhead tricep extensions": "https://youtube.com/shorts/toARywv737o?feature=share",
+    "thruster": "https://youtube.com/shorts/eZr2X1Ld0fQ?feature=share",
+    "hex bar deadlift": "https://youtube.com/shorts/HQhU34HxzF8?feature=share",
+    "dumbell bench press": "https://youtube.com/shorts/JnPqBZtkIV8?feature=share",
+    "dumbell incline bench": "https://youtube.com/shorts/T95y-OLSZeg?feature=share",
+    "nordic curl": "https://youtube.com/shorts/ctXdUZvFypw?feature=share"
+}
+
+# Load rules from Sheet2 (endurance removed)
 try:
     df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
     df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
@@ -39,47 +79,6 @@ try:
 except Exception as e:
     print(f"[ERROR] Failed to load rules: {e}")
     rules_by_focus = {}
-
-# YouTube video links for exercises
-video_links = {
-    "dumbell shoulder press": "https://youtube.com/shorts/XAqaKEreDqc?feature=share",
-    "dumbell curls": "https://youtube.com/shorts/Y_Cb30nyThA?feature=share",
-    "dumbell row": "https://youtube.com/shorts/kgU5z_m0UW4?feature=share",
-    "barbell curl": "https://youtube.com/shorts/UMhoqki749s?feature=share",
-    "pull-up": "https://youtube.com/shorts/GBEr1aQor80?feature=share",
-    "chin-up": "https://youtube.com/shorts/Eiq4gGEXKsg?feature=share",
-    "barbell box jumps": "https://youtube.com/shorts/45zktYU80fo?feature=share",
-    "barbell incline bench": "https://youtube.com/shorts/4dY3sMOO1p8?feature=share",
-    "barbell bench press": "https://youtube.com/shorts/-8OmnyNHX0E?feature=share",
-    "barbel romanian deadlift": "https://youtube.com/shorts/zwEgDxTRtUw?feature=share",
-    "barbell row": "https://youtube.com/shorts/fdId_O6KQbE?feature=share",
-    "hang cleans": "https://youtube.com/shorts/7tLkDFPlB2Y?feature=share",
-    "power cleans": "https://youtube.com/shorts/ToaSgMW54No?feature=share",
-    "barbell overhead shoulder press": "https://youtube.com/shorts/IjSFafTPt3I?feature=share",
-    "barbell deadlift": "https://youtube.com/shorts/tUpwzBr34tc?feature=share",
-    "barbell front squat": "https://youtube.com/shorts/xx7Nud5KzGA?feature=share",
-    "barbell squat": "https://youtube.com/shorts/7xETnBj2lEo?feature=share",
-    "ball slams (side)": "https://youtube.com/shorts/kxomaanj35Q?feature=share",
-    "ball slams (down)": "https://youtube.com/shorts/ieyndX_2GmQ?feature=share",
-    "medicine ball sit-ups": "https://youtube.com/shorts/tRYzXoNgACE?feature=share",
-    "burpees": "https://youtube.com/shorts/joucR5VPSkk?feature=share",
-    "burpee to box jump": "https://youtube.com/shorts/DgkKAC_pnS4?feature=share",
-    "single leg landings": "https://youtube.com/shorts/Y_iTJL_8_5c?feature=share",
-    "double leg landings with weight": "https://youtube.com/shorts/2_P3s3lZPGA?feature=share",
-    "box jumps": "https://youtube.com/shorts/1fAAk8YTKk4?feature=share",
-    "lunges": "https://youtube.com/shorts/y8oSzst1Jlg?feature=share",
-    "weighted lunges": "https://youtube.com/shorts/r-WQYMRUBJQ?feature=share",
-    "squats": "https://youtube.com/shorts/zlXdtRvG8SA?feature=share",
-    "skater jumps": "https://youtube.com/shorts/mPOuTnCW-C4?feature=share",
-    "depth jumps": "https://youtube.com/shorts/aHD5eIyUQ3Y?feature=share",
-    "overhead tricep extensions": "https://youtube.com/shorts/toARywv737o?feature=share",
-    "thruster": "https://youtube.com/shorts/eZr2X1Ld0fQ?feature=share",
-    "hex bar deadlift": "https://youtube.com/shorts/HQhU34HxzF8?feature=share",
-    "dumbell bench press": "https://youtube.com/shorts/JnPqBZtkIV8?feature=share",
-    "dumbell incline bench press": "https://youtube.com/shorts/T95y-OLSZeg?feature=share",
-    "nordic curl": "https://youtube.com/shorts/ctXdUZvFypw?feature=share"
-}
-
 
 # Dropdown options
 def get_dropdown_options():
@@ -108,9 +107,7 @@ def get_dropdown_options():
     except Exception as e:
         print(f"[ERROR] Failed to extract dropdown options: {e}")
         return {
-            "focus": [],
-            "subcategory": [],
-            "access": []
+            "focus": [], "subcategory": [], "access": []
         }
 
 # Generate plan
@@ -135,6 +132,7 @@ def get_workouts():
         matching = df[df.apply(row_matches, axis=1)]
         all_exercises = matching["Exercise"].dropna().tolist()
 
+        # Decide exercises/day
         is_fullbody = "full" in subcategory.lower()
         ex_per_day = 6 if is_fullbody else 4
         total_needed = ex_per_day * days
@@ -159,11 +157,6 @@ def get_workouts():
             day_exs.extend(other_pool[i * (ex_per_day - len(day_exs)) : (i + 1) * (ex_per_day - len(day_exs))])
             combined.extend(day_exs)
 
-        # Normalize video lookup keys
-        normalized_video_links = {
-            key.strip().lower(): url for key, url in exercise_videos.items()
-        }
-
         plan = {}
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
@@ -175,14 +168,13 @@ def get_workouts():
                 "sets": rule.get("sets", "N/A"),
                 "reps": rule.get("reps", "N/A"),
                 "rest": rule.get("rest", "N/A"),
-                "video_url": normalized_video_links.get(ex.strip().lower())
+                "url": video_links.get(ex.lower(), "")
             } for ex in day_exercises]
 
         return jsonify(plan)
     except Exception as e:
         print(f"[ERROR] Failed to generate plan: {e}")
         return jsonify({f"Day {i+1}": [] for i in range(days)})
-
 
 @app.route('/get_options', methods=['GET'])
 def get_options():
