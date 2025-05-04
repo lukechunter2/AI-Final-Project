@@ -8,11 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let subcategoryMap = {};
 
+  // Fetch dropdown options from backend
   fetch("/get_options")
     .then(res => res.json())
     .then(data => {
       populateSelect(focusSelect, data.focus);
       populateSelect(accessSelect, data.access);
+
+      // Build map of focus → subcategories
       subcategoryMap = data.subcategory.reduce((map, tag) => {
         const [focus, sub] = tag.split("-");
         if (!map[focus]) map[focus] = new Set();
@@ -23,20 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   focusSelect.addEventListener("change", () => {
     const selectedFocus = focusSelect.value;
-    if (selectedFocus === "Power") {
-      subcategorySelect.innerHTML = "<option value='Power'>N/A</option>";
-      subcategorySelect.disabled = true;
-    } else {
-      subcategorySelect.disabled = false;
-      const subs = subcategoryMap[selectedFocus] || [];
-      subcategorySelect.innerHTML = "";
-      [...subs].forEach(sub => {
-        const option = document.createElement("option");
-        option.value = `${selectedFocus}-${sub}`;
-        option.textContent = sub;
-        subcategorySelect.appendChild(option);
-      });
-    }
+    const subs = subcategoryMap[selectedFocus] || [];
+    subcategorySelect.innerHTML = "";
+    [...subs].forEach(sub => {
+      const option = document.createElement("option");
+      option.value = `${selectedFocus}-${sub}`;
+      option.textContent = sub;
+      subcategorySelect.appendChild(option);
+    });
   });
 
   function populateSelect(select, options) {
@@ -65,16 +62,10 @@ document.addEventListener("DOMContentLoaded", () => {
         planDiv.innerHTML = "";
         for (const [day, exercises] of Object.entries(plan)) {
           const section = document.createElement("div");
-          section.innerHTML = `<h2>${day}</h2><ul>${exercises.map(e => {
-            const link = e.video_url ? `<a href='${e.video_url}' target='_blank'>${e.exercise}</a>` : e.exercise;
-            return `<li>${link} <br> Sets: ${e.sets}, Reps: ${e.reps}, Rest: ${e.rest}</li>`;
-          }).join('')}</ul>`;
+          section.innerHTML = `<h2>${day}</h2><ul>${exercises.map(e =>
+            `<li><a href="${e.url}" target="_blank">${e.exercise}</a> — Sets: ${e.sets}, Reps: ${e.reps}, Rest: ${e.rest}</li>`
+          ).join('')}</ul>`;
           planDiv.appendChild(section);
-        }
-      });
-  });
-});
-
         }
       });
   });
