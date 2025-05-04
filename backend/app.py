@@ -27,7 +27,7 @@ video_links = {
     "Seated Box Jumps": "https://youtube.com/shorts/ESkl9Zi292I?feature=share",
     "Dumbell Seated Box Jumps": "https://youtube.com/shorts/_tLzu1XqHLs?feature=share",
     "Bulgarian Split Squat": "https://youtube.com/shorts/xj1aDwkiNg0?feature=share",
-    "Bulgarian Split Squat w/ Jumps": "https://youtube.com/shorts/rhadGt3EgnM?feature=share"
+    "Bulgarian Split Squat w/ Jumps": "https://youtube.com/shorts/rhadGt3EgnM?feature=share",
     "dumbell shoulder press": "https://youtube.com/shorts/XAqaKEreDqc?feature=share",
     "dumbell curls": "https://youtube.com/shorts/Y_Cb30nyThA?feature=share",
     "dumbell row": "https://youtube.com/shorts/kgU5z_m0UW4?feature=share",
@@ -65,6 +65,7 @@ video_links = {
     "dumbell incline bench": "https://youtube.com/shorts/T95y-OLSZeg?feature=share",
     "nordic curl": "https://youtube.com/shorts/ctXdUZvFypw?feature=share"
 }
+
 
 # Load rules from Sheet2 (endurance removed)
 try:
