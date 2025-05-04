@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   focusSelect.addEventListener("change", () => {
+    const selectedFocus = focusSelect.value;
     if (selectedFocus === "Power") {
       subcategorySelect.innerHTML = "<option value='Power'>N/A</option>";
       subcategorySelect.disabled = true;
@@ -67,14 +68,15 @@ document.addEventListener("DOMContentLoaded", () => {
         planDiv.innerHTML = "";
         for (const [day, exercises] of Object.entries(plan)) {
           const section = document.createElement("div");
-          section.innerHTML = `<h2>${day}</h2><ul>${exercises.map(e =>
-            `<li><a href="${e.url}" target="_blank">${e.exercise}</a> — Sets: ${e.sets}, Reps: ${e.reps}, Rest: ${e.rest}</li>`
-          ).join('')}</ul>`;
+          section.innerHTML = `<h2>${day}</h2><ul>${exercises.map(e => {
+            const link = e.video_url
+              ? `<a href="${e.video_url}" target="_blank">${e.exercise}</a>`
+              : e.exercise;
+            return `<li>${link} — Sets: ${e.sets}, Reps: ${e.reps}, Rest: ${e.rest}</li>`;
+          }).join('')}</ul>`;
           planDiv.appendChild(section);
         }
       });
   });
-});
-
 });
 
