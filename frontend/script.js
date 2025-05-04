@@ -26,14 +26,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   focusSelect.addEventListener("change", () => {
     const selectedFocus = focusSelect.value;
-    const subs = subcategoryMap[selectedFocus] || [];
-    subcategorySelect.innerHTML = "";
-    [...subs].forEach(sub => {
-      const option = document.createElement("option");
-      option.value = `${selectedFocus}-${sub}`;
-      option.textContent = sub;
-      subcategorySelect.appendChild(option);
-    });
+    if (selectedFocus === "Power") {
+      subcategorySelect.innerHTML = "<option value='Power'>N/A</option>";
+      subcategorySelect.disabled = true;
+    } else {
+      subcategorySelect.disabled = false;
+      const subs = subcategoryMap[selectedFocus] || [];
+      subcategorySelect.innerHTML = "";
+      [...subs].forEach(sub => {
+        const option = document.createElement("option");
+        option.value = `${selectedFocus}-${sub}`;
+        option.textContent = sub;
+        subcategorySelect.appendChild(option);
+      });
+    }
+
   });
 
   function populateSelect(select, options) {
