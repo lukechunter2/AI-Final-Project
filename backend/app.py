@@ -1,4 +1,3 @@
-# === app.py ===
 from flask import Flask, request, jsonify, send_from_directory
 import pandas as pd
 import os
@@ -17,7 +16,31 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Exercise video URLs
+# Load rules from Sheet2
+try:
+    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
+    df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
+    df_rules2 = df_rules2.drop(columns=df_rules2.columns[0])
+    df_rules2 = df_rules2.set_index("Rules").T
+    df_rules2.index = df_rules2.index.str.strip().str.lower()
+
+    rules_by_focus = {}
+    for focus in df_rules2.index:
+        if "endurance" in focus:
+            continue
+        row = df_rules2.loc[focus]
+        rules_by_focus[focus] = {
+            "reps": row.get("Number of Reps", "N/A"),
+            "rest": row.get("Rest Times", "N/A"),
+            "sets": row.get("Number of sets", "N/A")
+        }
+
+    print("[INFO] Loaded rules for:", list(rules_by_focus.keys()))
+except Exception as e:
+    print(f"[ERROR] Failed to load rules: {e}")
+    rules_by_focus = {}
+
+# YouTube video links for exercises
 exercise_videos = {
     "Dumbbell Goblet Squat": "https://youtube.com/shorts/5Npi3fhL5u8?feature=share",
     "Single Arm Dumbbell Row": "https://youtube.com/shorts/in0g2dqkeAI?feature=share",
@@ -66,30 +89,6 @@ exercise_videos = {
     "Dumbbell incline bench press": "https://youtube.com/shorts/T95y-OLSZeg?feature=share",
     "Nordic curl": "https://youtube.com/shorts/ctXdUZvFypw?feature=share"
 }
-
-# Load rules from Sheet2 (endurance removed)
-try:
-    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
-    df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
-    df_rules2 = df_rules2.drop(columns=df_rules2.columns[0])
-    df_rules2 = df_rules2.set_index("Rules").T
-    df_rules2.index = df_rules2.index.str.strip().str.lower()
-
-    rules_by_focus = {}
-    for focus in df_rules2.index:
-        if "endurance" in focus:
-            continue
-        row = df_rules2.loc[focus]
-        rules_by_focus[focus] = {
-            "reps": row.get("Number of Reps", "N/A"),
-            "rest": row.get("Rest Times", "N/A"),
-            "sets": row.get("Number of sets", "N/A")
-        }
-
-    print("[INFO] Loaded rules for:", list(rules_by_focus.keys()))
-except Exception as e:
-    print(f"[ERROR] Failed to load rules: {e}")
-    rules_by_focus = {}
 
 # Dropdown options
 def get_dropdown_options():
@@ -180,7 +179,7 @@ def get_workouts():
                 "sets": rule.get("sets", "N/A"),
                 "reps": rule.get("reps", "N/A"),
                 "rest": rule.get("rest", "N/A"),
-                "url": exercise_videos.get(ex, "#")
+                "video_url": exercise_videos.get(ex)
             } for ex in day_exercises]
 
         return jsonify(plan)
