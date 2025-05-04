@@ -25,7 +25,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   focusSelect.addEventListener("change", () => {
-    const selectedFocus = focusSelect.value;
     if (selectedFocus === "Power") {
       subcategorySelect.innerHTML = "<option value='Power'>N/A</option>";
       subcategorySelect.disabled = true;
@@ -40,7 +39,6 @@ document.addEventListener("DOMContentLoaded", () => {
         subcategorySelect.appendChild(option);
       });
     }
-
   });
 
   function populateSelect(select, options) {
@@ -76,5 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
   });
+});
+
 });
 
