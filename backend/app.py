@@ -18,7 +18,17 @@ except Exception as e:
 
 # Video links dictionary
 video_links = {
-    "dumbell shoulder press": "https://youtube.com/shorts/XAqaKEreDqc?feature=share",
+    "Dumbell Goblet Squat": "https://youtube.com/shorts/5Npi3fhL5u8?feature=share",
+    "Single Arm Dumbell Row": "https://youtube.com/shorts/in0g2dqkeAI?feature=share",
+    "Dumbell Romanian Deadlift": "https://youtube.com/shorts/8PW05t2HUj4?feature=share",
+    "Dumbell Single Leg Romanian Deadlifts": "https://youtube.com/shorts/49SHsrPAYSU?feature=share",
+    "Pistol Squats": "https://youtube.com/shorts/ILy1e6ljki8?feature=share",
+    "Pushup": "https://youtube.com/shorts/OYZZbR0VSo0?feature=share",
+    "Seated Box Jumps": "https://youtube.com/shorts/ESkl9Zi292I?feature=share",
+    "Dumbell Seated Box Jumps": "https://youtube.com/shorts/_tLzu1XqHLs?feature=share",
+    "Bulgarian Split Squat": "https://youtube.com/shorts/xj1aDwkiNg0?feature=share",
+    "Bulgarian Split Squat w/ Jumps": "https://youtube.com/shorts/rhadGt3EgnM?feature=share"
+    "dumbell shoulder press": "https://youtube.com/shorts/XAqaKEreDqc?feature=share,
     "dumbell curls": "https://youtube.com/shorts/Y_Cb30nyThA?feature=share",
     "dumbell row": "https://youtube.com/shorts/kgU5z_m0UW4?feature=share",
     "barbell curl": "https://youtube.com/shorts/UMhoqki749s?feature=share",
@@ -32,7 +42,7 @@ video_links = {
     "hang cleans": "https://youtube.com/shorts/7tLkDFPlB2Y?feature=share",
     "power cleans": "https://youtube.com/shorts/ToaSgMW54No?feature=share",
     "barbell overhead shoulder press": "https://youtube.com/shorts/IjSFafTPt3I?feature=share",
-    "barbell deadlift": "https://youtube.com/shorts/tUpwzBr34tc?feature=share",
+    "Barbell Deadlift": "https://youtube.com/shorts/tUpwzBr34tc?feature=share",
     "barbell front squat": "https://youtube.com/shorts/xx7Nud5KzGA?feature=share",
     "barbell squat": "https://youtube.com/shorts/7xETnBj2lEo?feature=share",
     "ball slams (side)": "https://youtube.com/shorts/kxomaanj35Q?feature=share",
@@ -40,7 +50,7 @@ video_links = {
     "medicine ball sit ups": "https://youtube.com/shorts/tRYzXoNgACE?feature=share",
     "burpees": "https://youtube.com/shorts/joucR5VPSkk?feature=share",
     "burpee to box jump": "https://youtube.com/shorts/DgkKAC_pnS4?feature=share",
-    "single leg landings": "https://youtube.com/shorts/Y_iTJL_8_5c?feature=share",
+    "Single leg landings": "https://youtube.com/shorts/Y_iTJL_8_5c?feature=share",
     "double leg landings with weight": "https://youtube.com/shorts/2_P3s3lZPGA?feature=share",
     "box jumps": "https://youtube.com/shorts/1fAAk8YTKk4?feature=share",
     "lunges": "https://youtube.com/shorts/y8oSzst1Jlg?feature=share",
