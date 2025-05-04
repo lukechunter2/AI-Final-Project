@@ -1,4 +1,3 @@
-// === script.js ===
 document.addEventListener("DOMContentLoaded", () => {
   const focusSelect = document.getElementById("focus");
   const subcategorySelect = document.getElementById("subcategory");
@@ -68,13 +67,13 @@ document.addEventListener("DOMContentLoaded", () => {
         planDiv.innerHTML = "";
         for (const [day, exercises] of Object.entries(plan)) {
           const section = document.createElement("div");
-          section.innerHTML = `<h2>${day}</h2><ul>${exercises.map(e => {
-            const link = e.video_url ? `<a href='${e.video_url}' target='_blank'>${e.exercise}</a>` : e.exercise;
-            return `<li>${link} — Sets: ${e.sets}, Reps: ${e.reps}, Rest: ${e.rest}</li>`;
-          }).join('')}</ul>`;
+          section.innerHTML = `<h2>${day}</h2><ul>${exercises.map(e =>
+            `<li>${e.url ? `<a href="${e.url}" target="_blank">${e.exercise}</a>` : e.exercise} — Sets: ${e.sets}, Reps: ${e.reps}, Rest: ${e.rest}</li>`
+          ).join('')}</ul>`;
           planDiv.appendChild(section);
         }
       });
   });
 });
+
 
