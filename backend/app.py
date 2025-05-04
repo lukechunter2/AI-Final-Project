@@ -168,6 +168,11 @@ def get_workouts():
             day_exs.extend(other_pool[i * (ex_per_day - len(day_exs)) : (i + 1) * (ex_per_day - len(day_exs))])
             combined.extend(day_exs)
 
+        # Normalize video lookup keys
+        normalized_video_links = {
+            key.strip().lower(): url for key, url in exercise_videos.items()
+        }
+
         plan = {}
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
@@ -179,13 +184,14 @@ def get_workouts():
                 "sets": rule.get("sets", "N/A"),
                 "reps": rule.get("reps", "N/A"),
                 "rest": rule.get("rest", "N/A"),
-                "video_url": exercise_videos.get(ex)
+                "video_url": normalized_video_links.get(ex.strip().lower())
             } for ex in day_exercises]
 
         return jsonify(plan)
     except Exception as e:
         print(f"[ERROR] Failed to generate plan: {e}")
         return jsonify({f"Day {i+1}": [] for i in range(days)})
+
 
 @app.route('/get_options', methods=['GET'])
 def get_options():
