@@ -16,33 +16,57 @@ except Exception as e:
     print(f"[ERROR] Failed to load exercise data: {e}")
     df = pd.DataFrame()
 
-# Video links dictionary
+# Load rules from Sheet2 (endurance removed)
+try:
+    df_rules2 = pd.read_excel(EXCEL_PATH, sheet_name="Sheet2", skiprows=1)
+    df_rules2 = df_rules2.rename(columns={df_rules2.columns[1]: "Rules"})
+    df_rules2 = df_rules2.drop(columns=df_rules2.columns[0])
+    df_rules2 = df_rules2.set_index("Rules").T
+    df_rules2.index = df_rules2.index.str.strip().str.lower()
+
+    rules_by_focus = {}
+    for focus in df_rules2.index:
+        if "endurance" in focus:
+            continue
+        row = df_rules2.loc[focus]
+        rules_by_focus[focus] = {
+            "reps": row.get("Number of Reps", "N/A"),
+            "rest": row.get("Rest Times", "N/A"),
+            "sets": row.get("Number of sets", "N/A")
+        }
+
+    print("[INFO] Loaded rules for:", list(rules_by_focus.keys()))
+except Exception as e:
+    print(f"[ERROR] Failed to load rules: {e}")
+    rules_by_focus = {}
+
+# Video links
 video_links = {
-    "Dumbell Goblet Squat": "https://youtube.com/shorts/5Npi3fhL5u8?feature=share",
-    "Single Arm Dumbell Row": "https://youtube.com/shorts/in0g2dqkeAI?feature=share",
-    "Dumbell Romanian Deadlift": "https://youtube.com/shorts/8PW05t2HUj4?feature=share",
-    "Dumbell Single Leg Romanian Deadlifts": "https://youtube.com/shorts/49SHsrPAYSU?feature=share",
-    "Pistol Squats": "https://youtube.com/shorts/ILy1e6ljki8?feature=share",
-    "Pushup": "https://youtube.com/shorts/OYZZbR0VSo0?feature=share",
-    "Seated Box Jumps": "https://youtube.com/shorts/ESkl9Zi292I?feature=share",
-    "Dumbell Seated Box Jumps": "https://youtube.com/shorts/_tLzu1XqHLs?feature=share",
-    "Bulgarian Split Squat": "https://youtube.com/shorts/xj1aDwkiNg0?feature=share",
-    "Bulgarian Split Squat w/ Jumps": "https://youtube.com/shorts/rhadGt3EgnM?feature=share",
-    "Dumbell Overhead Shoulder Press": "https://youtube.com/shorts/XAqaKEreDqc?feature=share",
+    "dumbell goblet squat": "https://youtube.com/shorts/5Npi3fhL5u8?feature=share",
+    "single arm dumbell row": "https://youtube.com/shorts/in0g2dqkeAI?feature=share",
+    "dumbell romanian deadlift": "https://youtube.com/shorts/8PW05t2HUj4?feature=share",
+    "dumbell single leg romanian deadlifts": "https://youtube.com/shorts/49SHsrPAYSU?feature=share",
+    "pistol squats": "https://youtube.com/shorts/ILy1e6ljki8?feature=share",
+    "pushup": "https://youtube.com/shorts/OYZZbR0VSo0?feature=share",
+    "seated box jumps": "https://youtube.com/shorts/ESkl9Zi292I?feature=share",
+    "dumbell seated box jumps": "https://youtube.com/shorts/_tLzu1XqHLs?feature=share",
+    "bulgarian split squat": "https://youtube.com/shorts/xj1aDwkiNg0?feature=share",
+    "bulgarian split squat w/ jumps": "https://youtube.com/shorts/rhadGt3EgnM?feature=share",
+    "dumbell shoulder press": "https://youtube.com/shorts/XAqaKEreDqc?feature=share",
     "dumbell curls": "https://youtube.com/shorts/Y_Cb30nyThA?feature=share",
     "dumbell row": "https://youtube.com/shorts/kgU5z_m0UW4?feature=share",
     "barbell curl": "https://youtube.com/shorts/UMhoqki749s?feature=share",
-    "Pullup": "https://youtube.com/shorts/GBEr1aQor80?feature=share",
+    "pull-up": "https://youtube.com/shorts/GBEr1aQor80?feature=share",
     "chin-up": "https://youtube.com/shorts/Eiq4gGEXKsg?feature=share",
     "barbell box jumps": "https://youtube.com/shorts/45zktYU80fo?feature=share",
     "barbell incline bench": "https://youtube.com/shorts/4dY3sMOO1p8?feature=share",
     "barbell bench press": "https://youtube.com/shorts/-8OmnyNHX0E?feature=share",
-    "barbel romanian deadlift": "https://youtube.com/shorts/zwEgDxTRtUw?feature=share",
+    "barbel rdl": "https://youtube.com/shorts/zwEgDxTRtUw?feature=share",
     "barbell row": "https://youtube.com/shorts/fdId_O6KQbE?feature=share",
     "hang cleans": "https://youtube.com/shorts/7tLkDFPlB2Y?feature=share",
     "power cleans": "https://youtube.com/shorts/ToaSgMW54No?feature=share",
     "barbell overhead shoulder press": "https://youtube.com/shorts/IjSFafTPt3I?feature=share",
-    "Barbell Deadlift": "https://youtube.com/shorts/tUpwzBr34tc?feature=share",
+    "barbell deadlift": "https://youtube.com/shorts/tUpwzBr34tc?feature=share",
     "barbell front squat": "https://youtube.com/shorts/xx7Nud5KzGA?feature=share",
     "barbell squat": "https://youtube.com/shorts/7xETnBj2lEo?feature=share",
     "ball slams (side)": "https://youtube.com/shorts/kxomaanj35Q?feature=share",
@@ -50,7 +74,7 @@ video_links = {
     "medicine ball sit ups": "https://youtube.com/shorts/tRYzXoNgACE?feature=share",
     "burpees": "https://youtube.com/shorts/joucR5VPSkk?feature=share",
     "burpee to box jump": "https://youtube.com/shorts/DgkKAC_pnS4?feature=share",
-    "Single leg landings": "https://youtube.com/shorts/Y_iTJL_8_5c?feature=share",
+    "single leg landings": "https://youtube.com/shorts/Y_iTJL_8_5c?feature=share",
     "double leg landings with weight": "https://youtube.com/shorts/2_P3s3lZPGA?feature=share",
     "box jumps": "https://youtube.com/shorts/1fAAk8YTKk4?feature=share",
     "lunges": "https://youtube.com/shorts/y8oSzst1Jlg?feature=share",
