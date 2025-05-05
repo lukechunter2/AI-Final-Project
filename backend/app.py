@@ -169,6 +169,7 @@ def get_workouts():
 
         matching = df[df.apply(row_matches, axis=1)]
         all_exercises = matching["Exercise"].dropna().tolist()
+        all_exercises = [ex for ex in all_exercises if ex.strip().lower() != "dip"]
 
         is_fullbody = "full" in subcategory.lower()
         ex_per_day = 6 if is_fullbody else 4
