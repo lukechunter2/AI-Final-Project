@@ -122,6 +122,9 @@ def get_dropdown_options():
         }
 
 # Generate plan
+# Your existing video_links dictionary should be defined somewhere above this function
+# Make sure all keys in video_links are lowercase and stripped of whitespace
+
 @app.route('/get_workouts', methods=['GET'])
 def get_workouts():
     focus = request.args.get('focus')
@@ -143,7 +146,6 @@ def get_workouts():
         matching = df[df.apply(row_matches, axis=1)]
         all_exercises = matching["Exercise"].dropna().tolist()
 
-        # Decide exercises/day
         is_fullbody = "full" in subcategory.lower()
         ex_per_day = 6 if is_fullbody else 4
         total_needed = ex_per_day * days
@@ -168,24 +170,33 @@ def get_workouts():
             day_exs.extend(other_pool[i * (ex_per_day - len(day_exs)) : (i + 1) * (ex_per_day - len(day_exs))])
             combined.extend(day_exs)
 
+        # Build plan with video links
         plan = {}
         focus_key = focus.strip().lower().replace("-", "_")
         rule = rules_by_focus.get(focus_key, {})
 
         for i in range(days):
             day_exercises = combined[i * ex_per_day : (i + 1) * ex_per_day]
-            plan[f"Day {i+1}"] = [{
-                "exercise": ex,
-                "sets": rule.get("sets", "N/A"),
-                "reps": rule.get("reps", "N/A"),
-                "rest": rule.get("rest", "N/A"),
-                "url": video_links.get(ex.lower(), "")
-            } for ex in day_exercises]
+            plan[f"Day {i+1}"] = []
+            for ex in day_exercises:
+                cleaned = ex.strip().lower()
+                url = video_links.get(cleaned, "")
+                if not url:
+                    print(f"[WARN] No video found for: {cleaned}")
+                plan[f"Day {i+1}"].append({
+                    "exercise": ex,
+                    "sets": rule.get("sets", "N/A"),
+                    "reps": rule.get("reps", "N/A"),
+                    "rest": rule.get("rest", "N/A"),
+                    "url": url
+                })
 
         return jsonify(plan)
+
     except Exception as e:
         print(f"[ERROR] Failed to generate plan: {e}")
         return jsonify({f"Day {i+1}": [] for i in range(days)})
+
 
 @app.route('/get_options', methods=['GET'])
 def get_options():
